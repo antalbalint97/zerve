@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+.DS_Store
+
+# Local notebooks / temp files
+*.ipynb_checkpoints
+*.tmp
+*.bak
+
+# Large local data files
+*.csv
+*.parquet
+*.feather
+*.arrow
+*.joblib
+*.pkl
+*.pickle
+*.xlsx
+*.xls
+*.docx
+*.zip
+
+# Keep docs and logs
+!*.md
+!*.log
+
+# Generated outputs and artifacts
+outputs/**
+!outputs/**/*.log
+!outputs/pipeline_log.txt
+
+# Common generated visual/report artifacts
+*.html
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+
+# If you later want to version a tiny sample dataset, place it under tests/fixtures
+# and add a targeted negation here.
+zerve_events.csv
+
+# generated files
+outputs/
+*.docx
+*.csv
