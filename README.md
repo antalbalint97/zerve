@@ -1,165 +1,39 @@
-# Zerve Hackathon Analysis
+# Zerve Activation Lens Dashboard
 
 ## What This Repo Is
+This repository contains a polished, presentation-only Streamlit dashboard for visualizing the results of the Zerve user behavioral analysis pipeline.
 
-This repo contains a reproducible event-analysis pipeline for the Zerve hackathon case:
+The dashboard highlights key findings regarding user activation, retention, churn risk, and intervention targeting for Zerve. It is built to serve as a presentation layer over precomputed Zerve pipeline outputs, and no longer contains or requires the heavy backend modeling logic.
 
-`What drives successful usage of Zerve?`
+## How to Run Locally
 
-It combines:
+1. Install requirements:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- exploratory analysis
-- user feature engineering
-- segmentation
-- lifecycle and survival analysis
-- modeling
-- credit/error/propensity analysis
-- canvas complexity
-- active-user churn proxy modeling
-- workflow motif analysis
-- geo analysis
-- intervention scoring
-- quality-of-struggle analysis
-- early path branching analysis
+2. Run the Streamlit application:
+   ```bash
+   streamlit run app.py
+   ```
 
-## Main Entry Points
+## Deploying on Streamlit Community Cloud
 
-### Standalone pipeline runner
-- `orchestrator.py`
+This repository is ready to be connected directly to [Streamlit Community Cloud](https://share.streamlit.io/).
 
-### Legacy compatibility runner
-- `13_orchestrator.py`
+1. Create a new app on Streamlit Community Cloud.
+2. Select this repository and the main branch.
+3. Set the Main file path to `app.py`.
+4. Streamlit will automatically install dependencies from `requirements.txt` and launch the app.
 
-### Numbered analysis phases
-- `01_eda.py`
-- `02_feature_engineering.py`
-- `03_user_segments.py`
-- `04_cohort_analysis.py`
-- `05_lifecycle_analysis.py`
-- `06_kpi_and_modeling.py`
-- `07_signup_hour_survival.py`
-- `08_india_hypothesis_success_def.py`
-- `09_fleet_cohort_model.py`
-- `10_user_lifecycle.py`
-- `11_tool_sequences_session_progression.py`
-- `12_credit_error_propensity.py`
-- `14_canvas_complexity.py`
-- `15_churn_prediction.py`
-- `16_ngram_workflow_analysis.py`
-- `17_geo_location_analysis.py`
-- `18_intervention_scoring.py`
-- `19_quality_of_struggle.py`
-- `20_path_branching_model.py`
+## Expected Outputs
 
-## Shared Helper Layer
+The application depends on precomputed data files that should be placed in the `outputs/` folder (or the repository root). The app expects files to have the `.csv` or `.parquet` extension. Note that the original filenames prefixed with `outputs_` are fully supported.
 
-- `analytics/io.py`
-- `analytics/events.py`
-- `analytics/metrics.py`
-- `analytics/viz.py`
+The following files are expected to be available:
+- **Main user features (required):** e.g., `outputs_user_features_segmented.csv`
+- **Churn scored users (optional):** e.g., `outputs_14_churn_scored_users.parquet`
+- **Intervention scored users (optional):** e.g., `outputs_18_intervention_scored_users.parquet`
+- **Quality of struggle scored users (optional):** e.g., `outputs_19_quality_of_struggle_scored_users.parquet`
 
-These centralize data loading, event normalization, session reconstruction, scoring logic, and chart writing.
-
-## Folder Structure
-
-- `analytics/`
-  Shared helper package for IO, event normalization, metrics, and plotting helpers.
-- `docs/`
-  Narrative writeups, roadmap, leakage review, reproduction guide, and the original technical document.
-- `legacy/`
-  Archived exploratory and draft files kept for reference but not part of the main pipeline.
-- `outputs/`
-  Generated artifacts, charts, parquet/csv outputs, and pipeline logs/status.
-- `tests/`
-  Deterministic helper-level tests.
-- project root
-  Runnable numbered scripts, `orchestrator.py`, `requirements.txt`, and `zerve_events.csv`.
-
-## Current State
-
-The repo has moved beyond the initial analysis stage.
-
-Implemented and working:
-
-- core pipeline through phase 20
-- helper-based refactor across much of the pipeline
-- fixes for the earlier weak analytical points
-- intervention and struggle layers
-- path branching model
-- Zerve reproduction guide
-
-Key project documents:
-
-- `docs/CASE_NARRATIVE.md`
-- `docs/TECHNICAL_APPENDIX.md`
-- `docs/STATUS_AND_ROADMAP.md`
-- `docs/NEXT_STEPS_IMPLEMENTATION.md`
-- `docs/ZERVE_REPRODUCTION_GUIDE.md`
-- `docs/LEAKAGE_REVIEW.md`
-
-## How To Run Locally
-
-### Full pipeline
-```bash
-python orchestrator.py
-```
-
-### Selected phases
-```bash
-python orchestrator.py --steps 14 15 16 17 18 19 20
-```
-
-### One script at a time
-```bash
-python 02_feature_engineering.py
-python 03_user_segments.py
-python 10_user_lifecycle.py
-```
-
-## Core Outputs
-
-Important reusable artifacts:
-
-- `outputs/user_features.parquet`
-- `outputs/user_features_segmented.parquet`
-- `outputs/canvas_complexity_features.parquet`
-- `outputs/15_churn_scored_users.parquet`
-- `outputs/16_ngram_tables.csv`
-- `outputs/17_country_metrics.csv`
-- `outputs/18_intervention_summary.csv`
-- `outputs/19_quality_of_struggle_summary.csv`
-- `outputs/20_branching_summary.csv`
-- `outputs/pipeline_status.json`
-- `outputs/pipeline_log.txt`
-
-## Reproducing On Zerve
-
-Start with:
-
-- `docs/ZERVE_REPRODUCTION_GUIDE.md`
-
-That guide explains:
-
-- how to map the local pipeline into Zerve Python blocks
-- which reduced submission-safe flow to use first
-- what artifacts each block should write
-- how to stay within the competition constraints
-
-## Competition Constraints
-
-This project is being packaged to satisfy the hackathon requirements:
-
-- all development, analysis, and modeling must be reproducible in Zerve
-- no external datasets
-- results must be regenerable from the provided event CSV and code
-
-## Recommended Next Move
-
-The analysis-extension trio is complete. The next priority is no longer adding local phases by default, but packaging the current work into a clean, reproducible Zerve submission.
-
-That means:
-
-1. use `orchestrator.py` as the local rerun entrypoint
-2. use `docs/ZERVE_REPRODUCTION_GUIDE.md` as the Zerve build plan
-3. build the submission-safe Zerve canvas first
-4. then add Fleet and hosted presentation layers
+If any of the optional datasets are missing, the dashboard will gracefully degrade and hide the sections relying on that missing data.

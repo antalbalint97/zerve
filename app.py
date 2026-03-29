@@ -96,8 +96,12 @@ def candidate_paths(base_name: str) -> list[Path]:
     return [
         OUTPUTS_DIR / f"{base_name}.parquet",
         OUTPUTS_DIR / f"{base_name}.csv",
+        OUTPUTS_DIR / f"outputs_{base_name}.parquet",
+        OUTPUTS_DIR / f"outputs_{base_name}.csv",
         BASE_DIR / f"{base_name}.parquet",
         BASE_DIR / f"{base_name}.csv",
+        BASE_DIR / f"outputs_{base_name}.parquet",
+        BASE_DIR / f"outputs_{base_name}.csv",
     ]
 
 
@@ -157,6 +161,7 @@ def load_all_data():
         [
             "18_quality_of_struggle",
             "18_quality_of_struggle_scored_users",
+            "19_quality_of_struggle_scored_users",
             "quality_of_struggle_scored_users",
         ],
         required=False,
