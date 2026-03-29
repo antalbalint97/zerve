@@ -32,31 +32,61 @@ st.markdown(
             max-width: 1350px;
         }
 
-        /* Metric kártyák */
+        /* Metric cards */
         div[data-testid="stMetric"] {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 14px;
-            padding: 12px 14px;
+            background: #0f172a !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 14px !important;
+            padding: 12px 14px !important;
         }
 
-        div[data-testid="stMetricLabel"] {
+        /* Metric label - minden belső elemre is */
+        div[data-testid="stMetric"] label,
+        div[data-testid="stMetric"] p,
+        div[data-testid="stMetric"] span,
+        div[data-testid="stMetric"] div[data-testid="stMetricLabel"],
+        div[data-testid="stMetric"] div[data-testid="stMetricLabel"] *,
+        div[data-testid="stMetric"] [data-testid="stMetricLabel"] * {
             color: #cbd5e1 !important;
+            opacity: 1 !important;
         }
 
-        div[data-testid="stMetricLabel"] > div {
-            color: #cbd5e1 !important;
-        }
-
-        div[data-testid="stMetricValue"] {
+        /* Metric value */
+        div[data-testid="stMetric"] div[data-testid="stMetricValue"],
+        div[data-testid="stMetric"] div[data-testid="stMetricValue"] *,
+        div[data-testid="stMetric"] [data-testid="stMetricValue"] * {
             color: #f8fafc !important;
+            opacity: 1 !important;
         }
 
-        div[data-testid="stMetricDelta"] {
+        /* Metric delta */
+        div[data-testid="stMetric"] div[data-testid="stMetricDelta"],
+        div[data-testid="stMetric"] div[data-testid="stMetricDelta"] *,
+        div[data-testid="stMetric"] [data-testid="stMetricDelta"] * {
             color: #22c55e !important;
+            opacity: 1 !important;
         }
 
-        /* Általános szövegek */
+        /* Insight cards */
+        .insight-box {
+            background: #0f172a !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 14px !important;
+            padding: 1rem 1.1rem !important;
+            margin-bottom: 1rem !important;
+            color: #e2e8f0 !important;
+        }
+
+        .insight-box,
+        .insight-box * {
+            color: #e2e8f0 !important;
+            opacity: 1 !important;
+        }
+
+        .insight-box strong {
+            color: #ffffff !important;
+        }
+
         .section-caption {
             color: #64748b;
             font-size: 0.95rem;
@@ -69,43 +99,11 @@ st.markdown(
             font-size: 0.9rem;
         }
 
-        /* Insight boxok */
-        .insight-box {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 14px;
-            padding: 1rem 1.1rem;
-            margin-bottom: 1rem;
-            color: #e2e8f0 !important;
-        }
-
-        .insight-box strong {
-            color: #f8fafc !important;
-        }
-
-        .insight-box ul,
-        .insight-box li,
-        .insight-box p,
-        .insight-box div,
-        .insight-box span {
-            color: #e2e8f0 !important;
-        }
-
         .tight-list ul {
             margin-top: 0.25rem;
             margin-bottom: 0.25rem;
         }
 
-        /* Sidebar finomhangolás */
-        section[data-testid="stSidebar"] {
-            background: #f8fafc;
-        }
-
-        section[data-testid="stSidebar"] * {
-            color: #0f172a;
-        }
-
-        /* DataFrame szélek kicsit tisztábban */
         div[data-testid="stDataFrame"] {
             border: 1px solid #e2e8f0;
             border-radius: 10px;
