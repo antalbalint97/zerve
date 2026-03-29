@@ -57,6 +57,5 @@ Thumbs.db
 zerve_events.csv
 
 # generated files
-outputs/
 *.docx
 *.csv
