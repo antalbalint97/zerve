@@ -31,32 +31,85 @@ st.markdown(
             padding-bottom: 2rem;
             max-width: 1350px;
         }
+
+        /* Metric kártyák */
         div[data-testid="stMetric"] {
-            background: #111827;
-            border: 1px solid #1f2937;
+            background: #0f172a;
+            border: 1px solid #1e293b;
             border-radius: 14px;
             padding: 12px 14px;
         }
+
+        div[data-testid="stMetricLabel"] {
+            color: #cbd5e1 !important;
+        }
+
+        div[data-testid="stMetricLabel"] > div {
+            color: #cbd5e1 !important;
+        }
+
+        div[data-testid="stMetricValue"] {
+            color: #f8fafc !important;
+        }
+
+        div[data-testid="stMetricDelta"] {
+            color: #22c55e !important;
+        }
+
+        /* Általános szövegek */
         .section-caption {
-            color: #9ca3af;
+            color: #64748b;
             font-size: 0.95rem;
             margin-top: -0.2rem;
             margin-bottom: 1.2rem;
         }
+
         .small-note {
-            color: #9ca3af;
+            color: #64748b;
             font-size: 0.9rem;
         }
+
+        /* Insight boxok */
         .insight-box {
-            background: #0b1220;
-            border: 1px solid #1f2937;
+            background: #0f172a;
+            border: 1px solid #1e293b;
             border-radius: 14px;
             padding: 1rem 1.1rem;
             margin-bottom: 1rem;
+            color: #e2e8f0 !important;
         }
+
+        .insight-box strong {
+            color: #f8fafc !important;
+        }
+
+        .insight-box ul,
+        .insight-box li,
+        .insight-box p,
+        .insight-box div,
+        .insight-box span {
+            color: #e2e8f0 !important;
+        }
+
         .tight-list ul {
             margin-top: 0.25rem;
             margin-bottom: 0.25rem;
+        }
+
+        /* Sidebar finomhangolás */
+        section[data-testid="stSidebar"] {
+            background: #f8fafc;
+        }
+
+        section[data-testid="stSidebar"] * {
+            color: #0f172a;
+        }
+
+        /* DataFrame szélek kicsit tisztábban */
+        div[data-testid="stDataFrame"] {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
         }
     </style>
     """,
@@ -297,7 +350,7 @@ def build_segments_figure() -> go.Figure:
 
     fig.update_layout(
         title="Behavioral segmentation",
-        template="plotly_dark",
+        template="plotly_white",
         height=430,
         margin=dict(t=70, l=20, r=20, b=20),
     )
@@ -344,7 +397,7 @@ def build_cohort_figure() -> go.Figure:
 
     fig.update_layout(
         title="Signup cohort performance",
-        template="plotly_dark",
+        template="plotly_white",
         height=430,
         legend=dict(orientation="h", y=-0.2),
         margin=dict(t=70, l=20, r=20, b=20),
@@ -368,7 +421,7 @@ def build_retention_figure() -> go.Figure:
         title="Second-session return rate by segment",
         yaxis_title="Return rate (%)",
         yaxis_range=[0, 110],
-        template="plotly_dark",
+        template="plotly_white",
         height=380,
         margin=dict(t=70, l=20, r=20, b=20),
     )
@@ -380,7 +433,7 @@ def build_churn_figure() -> go.Figure:
         fig = go.Figure()
         fig.update_layout(
             title="Churn data not available",
-            template="plotly_dark",
+            template="plotly_white",
             height=360,
         )
         return fig
@@ -389,7 +442,7 @@ def build_churn_figure() -> go.Figure:
         fig = go.Figure()
         fig.update_layout(
             title="Churn dataset loaded, but expected columns are missing",
-            template="plotly_dark",
+            template="plotly_white",
             height=360,
         )
         return fig
@@ -431,7 +484,7 @@ def build_churn_figure() -> go.Figure:
     fig.update_layout(
         title=title,
         yaxis_title="Users",
-        template="plotly_dark",
+        template="plotly_white",
         height=380,
         margin=dict(t=70, l=20, r=20, b=20),
     )
@@ -443,7 +496,7 @@ def build_intervention_figure() -> go.Figure:
         fig = go.Figure()
         fig.update_layout(
             title="Intervention data not available",
-            template="plotly_dark",
+            template="plotly_white",
             height=360,
         )
         return fig
@@ -452,7 +505,7 @@ def build_intervention_figure() -> go.Figure:
         fig = go.Figure()
         fig.update_layout(
             title="Intervention dataset loaded, but expected columns are missing",
-            template="plotly_dark",
+            template="plotly_white",
             height=360,
         )
         return fig
@@ -481,7 +534,7 @@ def build_intervention_figure() -> go.Figure:
     fig.update_layout(
         title="Intervention targeting",
         xaxis_title="Users",
-        template="plotly_dark",
+        template="plotly_white",
         height=380,
         margin=dict(t=70, l=20, r=20, b=20),
     )
@@ -493,7 +546,7 @@ def build_struggle_figure() -> go.Figure:
         fig = go.Figure()
         fig.update_layout(
             title="Quality-of-struggle data not available",
-            template="plotly_dark",
+            template="plotly_white",
             height=360,
         )
         return fig
@@ -508,7 +561,7 @@ def build_struggle_figure() -> go.Figure:
         fig = go.Figure()
         fig.update_layout(
             title="Quality-of-struggle dataset loaded, but expected columns are missing",
-            template="plotly_dark",
+            template="plotly_white",
             height=360,
         )
         return fig
@@ -528,7 +581,7 @@ def build_struggle_figure() -> go.Figure:
         title="Quality of struggle",
         xaxis_title="Class",
         yaxis_title="Users",
-        template="plotly_dark",
+        template="plotly_white",
         height=380,
         margin=dict(t=70, l=20, r=20, b=20),
     )
