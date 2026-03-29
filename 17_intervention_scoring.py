@@ -1,11 +1,14 @@
 import sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 from analytics.io import OUTPUT_DIR, ensure_output_dir, load_events, load_features
 from analytics.metrics import summarize_risk
@@ -16,7 +19,10 @@ warnings.filterwarnings("ignore")
 DATA_PATH = "zerve_events.csv"
 FEAT_PATH = "outputs/user_features_segmented.parquet"
 CANVAS_PATH = "outputs/canvas_complexity_features.parquet"
-CHURN_PATH = "outputs/15_churn_scored_users.parquet"
+CHURN_PATH_CANDIDATES = [
+    "outputs/14_churn_scored_users.parquet",
+    "outputs/15_churn_scored_users.parquet",
+]
 
 
 def normalize_series(series: pd.Series) -> pd.Series:
@@ -39,7 +45,13 @@ def main() -> None:
     feat = load_features(FEAT_PATH)
     canvas = pd.read_parquet(CANVAS_PATH)
     canvas.index = canvas.index.astype(str)
-    churn = pd.read_parquet(CHURN_PATH).set_index("person_id")
+    churn_path = next((p for p in CHURN_PATH_CANDIDATES if Path(p).exists()), None)
+    if churn_path is None:
+        raise FileNotFoundError(
+            f"None of the expected churn outputs exist: {CHURN_PATH_CANDIDATES}"
+        )
+    print(f"  Using churn file: {churn_path}")
+    churn = pd.read_parquet(churn_path).set_index("person_id")
     events = load_events(DATA_PATH)
 
     error_users = set(events.loc[events["event"] == "agent_open_error_assist", "person_id"].astype(str))
@@ -168,33 +180,106 @@ def main() -> None:
     write_html(fig1, f"{OUTPUT_DIR}/18_intervention_mix.html")
     print(f"  Saved: {OUTPUT_DIR}/18_intervention_mix.html")
 
-    fig2 = px.bar(
-        summary.melt(
-            id_vars="recommended_intervention",
-            value_vars=["avg_churn_risk", "avg_activation", "avg_struggle", "avg_builder_momentum"],
-        ),
-        x="recommended_intervention",
-        y="value",
-        color="variable",
+    signal_plot = summary.melt(
+        id_vars="recommended_intervention",
+        value_vars=["avg_churn_risk", "avg_activation", "avg_struggle", "avg_builder_momentum"],
+        var_name="metric",
+        value_name="value",
+    )
+    metric_order = ["avg_churn_risk", "avg_activation", "avg_struggle", "avg_builder_momentum"]
+    metric_labels = {
+        "avg_churn_risk": "Avg churn risk",
+        "avg_activation": "Avg activation",
+        "avg_struggle": "Avg struggle",
+        "avg_builder_momentum": "Avg builder momentum",
+    }
+    metric_colors = {
+        "avg_churn_risk": "#ff6b6b",
+        "avg_activation": "#00b4d8",
+        "avg_struggle": "#ffd166",
+        "avg_builder_momentum": "#90e0ef",
+    }
+    fig2 = go.Figure()
+    for metric in metric_order:
+        sub = signal_plot[signal_plot["metric"] == metric]
+        if len(sub) == 0:
+            continue
+        fig2.add_trace(go.Bar(
+            x=sub["recommended_intervention"],
+            y=sub["value"],
+            name=metric_labels.get(metric, metric),
+            marker_color=metric_colors.get(metric, "#888"),
+        ))
+    fig2.update_layout(
         barmode="group",
         title="Intervention Signal Profile<br><sup>Why each intervention group is being flagged</sup>",
         template="plotly_dark",
-        labels={"recommended_intervention": "", "value": "Average normalized score", "variable": ""},
+        xaxis_title="",
+        yaxis_title="Average normalized score",
+        legend_title_text="",
+        height=420,
     )
     write_html(fig2, f"{OUTPUT_DIR}/18_intervention_signal_profile.html")
     print(f"  Saved: {OUTPUT_DIR}/18_intervention_signal_profile.html")
 
     top_users = scored.sort_values("intervention_priority_score", ascending=False).head(25).copy()
-    fig3 = px.scatter(
-        top_users,
-        x="activation_signal",
-        y="churn_risk_signal",
-        color="recommended_intervention",
-        size="intervention_priority_score",
-        hover_data=["person_id", "segment", "struggle_signal", "builder_momentum_signal"],
+    fig3 = go.Figure()
+    intervention_order = top_users["recommended_intervention"].drop_duplicates().tolist()
+    palette = [
+        "#00b4d8",
+        "#48cae4",
+        "#90e0ef",
+        "#ffd166",
+        "#ef476f",
+        "#8338ec",
+    ]
+    color_map = {
+        label: palette[i % len(palette)]
+        for i, label in enumerate(intervention_order)
+    }
+    for label in intervention_order:
+        sub = top_users[top_users["recommended_intervention"] == label]
+        if len(sub) == 0:
+            continue
+        fig3.add_trace(go.Scatter(
+            x=sub["activation_signal"],
+            y=sub["churn_risk_signal"],
+            mode="markers",
+            name=label,
+            marker=dict(
+                color=color_map.get(label, "#888"),
+                size=(sub["intervention_priority_score"].fillna(0) * 28 + 8),
+                opacity=0.75,
+                sizemode="diameter",
+            ),
+            customdata=np.stack(
+                [
+                    sub["person_id"].astype(str),
+                    sub["segment"].astype(str),
+                    sub["struggle_signal"].fillna(0),
+                    sub["builder_momentum_signal"].fillna(0),
+                    sub["intervention_priority_score"].fillna(0),
+                ],
+                axis=-1,
+            ),
+            hovertemplate=(
+                "Intervention=%{fullData.name}<br>"
+                "Person ID=%{customdata[0]}<br>"
+                "Segment=%{customdata[1]}<br>"
+                "Activation signal=%{x:.3f}<br>"
+                "Churn-risk signal=%{y:.3f}<br>"
+                "Struggle signal=%{customdata[2]:.3f}<br>"
+                "Builder momentum=%{customdata[3]:.3f}<br>"
+                "Priority score=%{customdata[4]:.3f}<extra></extra>"
+            ),
+        ))
+    fig3.update_layout(
         title="Top Priority Intervention Candidates<br><sup>High-priority users by activation and churn-risk profile</sup>",
         template="plotly_dark",
-        labels={"activation_signal": "Activation signal", "churn_risk_signal": "Churn-risk signal"},
+        xaxis_title="Activation signal",
+        yaxis_title="Churn-risk signal",
+        legend_title_text="",
+        height=500,
     )
     write_html(fig3, f"{OUTPUT_DIR}/18_top_intervention_candidates.html")
     print(f"  Saved: {OUTPUT_DIR}/18_top_intervention_candidates.html")
@@ -218,6 +303,5 @@ def main() -> None:
 
     print("\n[OK] Intervention scoring complete.")
 
-
-if __name__ == "__main__":
-    main()
+# Zerve: call main() directly (no __main__ guard)
+main()

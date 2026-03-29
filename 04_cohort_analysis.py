@@ -1,25 +1,26 @@
-import sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+﻿import sys
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 """
 =============================================================
- 04_cohort_analysis.py  --  Kohorsz Elemzés
+ 04_cohort_analysis.py  --  Cohort Analysis
  Zerve Hackathon 2026
 =============================================================
 Input : outputs/user_features_segmented.parquet
 Output: outputs/04_cohort_*.html
 
-KET KULONALLO KOHORSZ ELEMZES:
+TWO SEPARATE COHORT ANALYSES:
 
-  A) Signup hónap szerinti kohorsz
-     -- Melyik hónapban regisztráltak?
-     -- Hogyan fejlődött a platform user-bázisa?
-     -- Melyik kohorsz lett a legelkötelezettebbé?
+  A) Signup month-based cohort
+     -- Which month did users register in?
+     -- How did the platform user base evolve?
+     -- Which cohort became the most engaged?
 
-  B) Agent adoptáció időzítése szerinti kohorsz
-     -- Korai adoptálók (<1h signup után)
-     -- Késői adoptálók (1h+)
-     -- Soha nem adoptálók
-     Ez KULONALLO a signup kohorsz elemzéstől!
+  B) Cohort by agent adoption timing
+     -- Early adopters (<1h after signup)
+     -- Late adopters (1h+)
+     -- Never adopters
+     This is SEPARATE from the signup cohort analysis!
 """
 
 import pandas as pd
@@ -48,9 +49,9 @@ SEGMENT_COLORS = {
 SEG_ORDER = ["Agent Builder", "Agent Runner", "Manual Coder", "Viewer", "Ghost"]
 
 # =======================================================
-# A) SIGNUP HONAP KOHORSZ ELEMZES
+# A) SIGNUP MONTH COHORT ANALYSIS
 # =======================================================
-print("\n-- A) Signup Kohorsz Elemzés --")
+print("\n-- A) Signup Cohort Analysis --")
 
 cohort = feat.groupby("signup_cohort").agg(
     users              = ("total_events", "count"),
@@ -71,14 +72,14 @@ cohort["pct_credit_exceeded"] *= 100
 
 print(cohort[["users","avg_days_active","pct_ever_agent","avg_agent_tools","median_tenure_days"]].to_string())
 
-# A1. Kohorsz méret és engagement
+# A1. Cohort size and engagement
 fig_a1 = make_subplots(
     rows=2, cols=2,
     subplot_titles=[
-        "Regisztrálók száma kohorszonként",
-        "Átlag aktív napok",
-        "Agent adoptáció aránya (%)",
-        "Átlag agent tool hívás / user",
+        "Number of registrants by cohort",
+        "Avg active days",
+        "Agent adoption rate (%)",
+        "Average agent tool calls / user",
     ]
 )
 
@@ -95,14 +96,14 @@ fig_a1.add_trace(go.Bar(x=x, y=cohort["avg_agent_tools"].round(2),
                          marker_color=colors, name="Avg tools", showlegend=False), row=2, col=2)
 
 fig_a1.update_layout(
-    title="Signup Kohorsz Összehasonlítás<br><sup>Melyik hónapban regisztráltak a legelkötelezettebbek?</sup>",
+    title="Signup Cohort Comparison<br><sup>Which month registered the most engaged users?</sup>",
     template="plotly_dark",
     height=600,
 )
 write_html(fig_a1, f"{OUTPUT_DIR}/04_cohort_signup_overview.html")
 print(f"  Saved: {OUTPUT_DIR}/04_cohort_signup_overview.html")
 
-# A2. Szegmens összetétel kohorszonként
+# A2. Segment composition by cohort
 seg_cohort = (
     feat.groupby(["signup_cohort", "segment"]).size()
     .unstack(fill_value=0)
@@ -121,54 +122,54 @@ for seg in [s for s in SEG_ORDER if s in seg_cohort_pct.columns]:
 
 fig_a2.update_layout(
     barmode="stack",
-    title="Szegmens Összetétel Signup Kohorszonként (%)<br><sup>Javult-e a platformon a power user arány az idők során?</sup>",
-    yaxis_title="Arány (%)",
+    title="Segment Mix by Signup Cohort (%)<br><sup>Has the power user ratio improved over time?</sup>",
+    yaxis_title="Share (%)",
     template="plotly_dark",
     height=450,
 )
 write_html(fig_a2, f"{OUTPUT_DIR}/04_cohort_segment_mix.html")
 print(f"  Saved: {OUTPUT_DIR}/04_cohort_segment_mix.html")
 
-# A3. Engagement metrikák kohorszonként -- line chart
+# A3. Engagement metrics by cohort -- line chart
 fig_a3 = make_subplots(specs=[[{"secondary_y": True}]])
 fig_a3.add_trace(go.Scatter(
     x=x, y=cohort["avg_days_active"].round(2),
-    mode="lines+markers", name="Átlag aktív napok",
+    mode="lines+markers", name="Avg active days",
     line=dict(color="#00b4d8", width=3),
     marker=dict(size=10),
 ), secondary_y=False)
 fig_a3.add_trace(go.Scatter(
     x=x, y=cohort["pct_ever_agent"].round(1),
-    mode="lines+markers", name="Agent adoptáció %",
+    mode="lines+markers", name="Agent adoption %",
     line=dict(color="#90e0ef", width=3, dash="dot"),
     marker=dict(size=10, symbol="diamond"),
 ), secondary_y=True)
 fig_a3.update_layout(
-    title="Engagement Trend Kohorszonként<br><sup>Tanul a platform? Javulnak a mutatók?</sup>",
+    title="Engagement Trend by Cohort<br><sup>Is the platform learning? Are metrics improving?</sup>",
     template="plotly_dark",
     height=400,
 )
-fig_a3.update_yaxes(title_text="Átlag aktív napok", secondary_y=False)
-fig_a3.update_yaxes(title_text="Agent adoptáció %", secondary_y=True)
+fig_a3.update_yaxes(title_text="Avg active days", secondary_y=False)
+fig_a3.update_yaxes(title_text="Agent adoption %", secondary_y=True)
 write_html(fig_a3, f"{OUTPUT_DIR}/04_cohort_engagement_trend.html")
 print(f"  Saved: {OUTPUT_DIR}/04_cohort_engagement_trend.html")
 
 # =======================================================
-# B) AGENT ADOPTACIO KOHORSZ -- KULONALLO ELEMZES
+# B) AGENT ADOPTION COHORT -- SEPARATE ANALYSIS
 # =======================================================
-print("\n-- B) Agent Adoptáció Kohorsz Elemzés --")
-print("   (Ez NEM a signup kohorsz -- ez a viselkedés alapján képzett csoport)")
+print("\n-- B) Agent Adoption Cohort Analysis --")
+print("   (This is NOT the signup cohort -- this is a behavior-based group)")
 
-feat["adoption_cohort"] = "Soha nem adoptálta"
-feat.loc[feat["ever_used_agent"] == 1, "adoption_cohort"] = "Késői adoptáló (1h+)"
-feat.loc[feat["adopted_agent_early"] == 1, "adoption_cohort"] = "Korai adoptáló (<1h)"
+feat["adoption_cohort"] = "Never adopted"
+feat.loc[feat["ever_used_agent"] == 1, "adoption_cohort"] = "Late adopter (1h+)"
+feat.loc[feat["adopted_agent_early"] == 1, "adoption_cohort"] = "Early adopter (<1h)"
 
 ADOPTION_COLORS = {
-    "Korai adoptáló (<1h)" : "#00b4d8",
-    "Késői adoptáló (1h+)" : "#90e0ef",
-    "Soha nem adoptálta"   : "#444455",
+    "Early adopter (<1h)" : "#00b4d8",
+    "Late adopter (1h+)" : "#90e0ef",
+    "Never adopted"   : "#444455",
 }
-ADOPTION_ORDER = ["Korai adoptáló (<1h)", "Késői adoptáló (1h+)", "Soha nem adoptálta"]
+ADOPTION_ORDER = ["Early adopter (<1h)", "Late adopter (1h+)", "Never adopted"]
 
 adoption = feat.groupby("adoption_cohort").agg(
     users              = ("total_events", "count"),
@@ -186,14 +187,14 @@ adoption["pct_of_users"] = adoption["users"] / len(feat) * 100
 print(adoption[["users", "pct_of_users", "avg_days_active",
                  "avg_agent_tools", "avg_build_calls"]].round(2).to_string())
 
-# B1. Adoptáció kohorsz összehasonlítás
+# B1. Adoption cohort comparison
 metrics_to_compare = {
-    "Átlag aktív napok"      : "avg_days_active",
-    "Átlag manual futtatás"  : "avg_manual_runs",
-    "Átlag agent tool hívás" : "avg_agent_tools",
-    "Átlag agent build"      : "avg_build_calls",
-    "Átlag canvasok"         : "avg_canvases",
-    "Kredit túllépés %"      : "pct_credit_exceeded",
+    "Avg active days"      : "avg_days_active",
+    "Avg manual runs"  : "avg_manual_runs",
+    "Avg agent tool calls" : "avg_agent_tools",
+    "Avg agent build"      : "avg_build_calls",
+    "Avg canvases"         : "avg_canvases",
+    "Credit exceeded %"      : "pct_credit_exceeded",
 }
 
 fig_b1 = go.Figure()
@@ -201,7 +202,7 @@ for cohort_name in ADOPTION_ORDER:
     if cohort_name not in adoption.index:
         continue
     row_data = adoption.loc[cohort_name]
-    # Normalizálás a max-hoz
+    # Normalize to the max
     vals = []
     for _, col in metrics_to_compare.items():
         col_max = adoption[col].max()
@@ -219,14 +220,14 @@ for cohort_name in ADOPTION_ORDER:
 
 fig_b1.update_layout(
     polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-    title="Agent Adoptáció Kohorsz Profil<br><sup>Korai adoptálók vs késői vs soha -- viselkedési különbségek</sup>",
+    title="Agent Adoption Cohort Profile<br><sup>Early adopters vs late vs never -- behavioral differences</sup>",
     template="plotly_dark",
     height=520,
 )
 write_html(fig_b1, f"{OUTPUT_DIR}/04_adoption_cohort_radar.html")
 print(f"  Saved: {OUTPUT_DIR}/04_adoption_cohort_radar.html")
 
-# B2. Adoptáció kohorsz x signup kohorsz kereszttábla
+# B2. Adoption cohort x signup cohort cross-tab
 cross = (
     feat.groupby(["signup_cohort", "adoption_cohort"]).size()
     .unstack(fill_value=0)
@@ -247,22 +248,22 @@ for ac in ADOPTION_ORDER:
 
 fig_b2.update_layout(
     barmode="stack",
-    title="Agent Adoptáció Signup Kohorszonként<br><sup>Javult-e az agent adoptáció a later cohortokban?</sup>",
-    yaxis_title="Arány (%)",
+    title="Agent Adoption by Signup Cohort<br><sup>Did agent adoption improve in later cohorts?</sup>",
+    yaxis_title="Share (%)",
     template="plotly_dark",
     height=420,
 )
 write_html(fig_b2, f"{OUTPUT_DIR}/04_adoption_by_signup_cohort.html")
 print(f"  Saved: {OUTPUT_DIR}/04_adoption_by_signup_cohort.html")
 
-# B3. Bar comparison -- kulcs metrikák adoptáció szerint
+# B3. Bar comparison -- key metrics by adoption timing
 fig_b3 = make_subplots(rows=1, cols=3,
-    subplot_titles=["Átlag aktív napok", "Átlag agent tools", "Átlag canvasok"])
+    subplot_titles=["Avg active days", "Avg agent tools", "Avg canvases"])
 
 for i, (metric, col) in enumerate([
-    ("Átlag aktív napok", "avg_days_active"),
-    ("Átlag agent tools", "avg_agent_tools"),
-    ("Átlag canvasok",    "avg_canvases"),
+    ("Avg active days", "avg_days_active"),
+    ("Avg agent tools", "avg_agent_tools"),
+    ("Avg canvases",    "avg_canvases"),
 ], start=1):
     fig_b3.add_trace(go.Bar(
         x=adoption.index,
@@ -274,18 +275,19 @@ for i, (metric, col) in enumerate([
     ), row=1, col=i)
 
 fig_b3.update_layout(
-    title="Korai vs Késői vs Soha Agent Adoptáló -- Kulcs Metrikák<br>"
-          "<sup>A korai adoptálók lényegesen elkötelezettebb felhasználókká váltak?</sup>",
+    title="Early vs Late vs Never Agent Adopter -- Key Metrics<br>"
+          "<sup>Did early adopters become substantially more engaged users?</sup>",
     template="plotly_dark",
     height=400,
 )
 write_html(fig_b3, f"{OUTPUT_DIR}/04_adoption_metrics_comparison.html")
 print(f"  Saved: {OUTPUT_DIR}/04_adoption_metrics_comparison.html")
 
-# -- MENTES -----------------------------------------------
+# -- SAVE -----------------------------------------------
 feat.to_parquet(f"{OUTPUT_DIR}/user_features_segmented.parquet")
-print(f"\n  Updated: {OUTPUT_DIR}/user_features_segmented.parquet (adoption_cohort hozzáadva)")
+print(f"\n  Updated: {OUTPUT_DIR}/user_features_segmented.parquet (adoption_cohort added)")
 print("\nSummary:")
-print(f"  Signup kohorsz elemzés: 3 chart")
-print(f"  Agent adoptáció kohorsz: 3 chart")
-print(f"  Fontos: a KET elemzes ortogonalis -- kulonvalasztas!")
+print(f"  Signup cohort analysis: 3 charts")
+print(f"  Agent adoption cohort: 3 charts")
+print(f"  Important: the TWO analyses are orthogonal and intentionally separated!")
+

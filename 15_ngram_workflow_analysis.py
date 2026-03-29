@@ -1,10 +1,11 @@
 import sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import warnings
 
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 from analytics.events import (
     add_canvas_id,
@@ -20,7 +21,7 @@ warnings.filterwarnings("ignore")
 DATA_PATH = "zerve_events.csv"
 FEAT_PATH = "outputs/user_features_segmented.parquet"
 CANVAS_COMPLEXITY_PATH = "outputs/canvas_complexity_features.parquet"
-CHURN_PATH = "outputs/15_churn_scored_users.parquet"
+CHURN_PATH = "outputs/14_churn_scored_users.parquet"
 CHURN_TARGET_COL = "is_14d_survival_churn_proxy"
 
 
@@ -109,21 +110,34 @@ def main() -> None:
     ngram_tables.to_csv(f"{OUTPUT_DIR}/16_ngram_tables.csv", index=False)
     print(f"  Saved: {OUTPUT_DIR}/16_ngram_tables.csv")
 
-    fig1 = px.bar(
-        ngram_tables[
-            (ngram_tables["comparison"] == "Agent Builder motifs")
-            & (ngram_tables["publishable"] == 1)
-        ].head(12),
-        x="lift",
-        y="ngram",
-        color="focal_count",
-        orientation="h",
+    fig1_data = ngram_tables[
+        (ngram_tables["comparison"] == "Agent Builder motifs")
+        & (ngram_tables["publishable"] == 1)
+    ].head(12).copy()
+    fig1 = go.Figure()
+    if not fig1_data.empty:
+        fig1.add_trace(go.Bar(
+            x=fig1_data["lift"],
+            y=fig1_data["ngram"],
+            orientation="h",
+            marker=dict(
+                color=fig1_data["focal_count"],
+                colorscale="Teal",
+                showscale=True,
+                colorbar=dict(title="Count"),
+            ),
+            text=fig1_data["focal_count"],
+            textposition="outside",
+        ))
+    fig1.update_layout(
         title="Event N-gram Lift: Agent Builder Workflow Fingerprints",
         template="plotly_dark",
-        labels={"ngram": "", "lift": "Lift vs others", "focal_count": "Count"},
-        color_continuous_scale="Teal",
+        xaxis_title="Lift vs others",
+        yaxis_title="",
+        yaxis=dict(autorange="reversed"),
+        height=520,
+        showlegend=False,
     )
-    fig1.update_layout(yaxis=dict(autorange="reversed"), height=520)
     fig1.write_html(f"{OUTPUT_DIR}/16_event_ngram_lift.html")
     print(f"  Saved: {OUTPUT_DIR}/16_event_ngram_lift.html")
 
@@ -148,15 +162,36 @@ def main() -> None:
         table["segment"] = segment
         motif_rows.append(table)
     motif_table = pd.concat(motif_rows, ignore_index=True) if motif_rows else pd.DataFrame()
-    fig2 = px.bar(
-        motif_table,
-        x="segment",
-        y="lift",
-        color="ngram",
+    fig2 = go.Figure()
+    if not motif_table.empty:
+        motif_order = motif_table["ngram"].drop_duplicates().tolist()
+        palette = [
+            "#00b4d8",
+            "#48cae4",
+            "#90e0ef",
+            "#ffd166",
+            "#ef476f",
+            "#8338ec",
+            "#06d6a0",
+            "#f4a261",
+        ]
+        color_map = {motif: palette[i % len(palette)] for i, motif in enumerate(motif_order)}
+        for motif in motif_order:
+            sub = motif_table[motif_table["ngram"] == motif]
+            fig2.add_trace(go.Bar(
+                x=sub["segment"],
+                y=sub["lift"],
+                name=motif,
+                marker_color=color_map[motif],
+            ))
+    fig2.update_layout(
         barmode="group",
         title="Top Segment Workflow Motifs<br><sup>Most over-indexing bigrams per segment</sup>",
         template="plotly_dark",
-        labels={"segment": "", "lift": "Lift", "ngram": "Motif"},
+        xaxis_title="",
+        yaxis_title="Lift",
+        legend_title_text="Motif",
+        height=420,
     )
     fig2.write_html(f"{OUTPUT_DIR}/16_segment_workflow_motifs.html")
     print(f"  Saved: {OUTPUT_DIR}/16_segment_workflow_motifs.html")
@@ -165,23 +200,34 @@ def main() -> None:
         (ngram_tables["comparison"] == "Churn motifs")
         & (ngram_tables["publishable"] == 1)
     ].head(12)
-    fig3 = px.bar(
-        churn_table,
-        x="lift",
-        y="ngram",
-        color="focal_count",
-        orientation="h",
+    fig3 = go.Figure()
+    if not churn_table.empty:
+        fig3.add_trace(go.Bar(
+            x=churn_table["lift"],
+            y=churn_table["ngram"],
+            orientation="h",
+            marker=dict(
+                color=churn_table["focal_count"],
+                colorscale="Reds",
+                showscale=True,
+                colorbar=dict(title="Count"),
+            ),
+            text=churn_table["focal_count"],
+            textposition="outside",
+        ))
+    fig3.update_layout(
         title="Churn vs Retained Workflow Motifs<br><sup>Session-bounded dead-end vs healthy patterns</sup>",
         template="plotly_dark",
-        labels={"ngram": "", "lift": "Lift toward churn", "focal_count": "Count"},
-        color_continuous_scale="Reds",
+        xaxis_title="Lift toward churn",
+        yaxis_title="",
+        yaxis=dict(autorange="reversed"),
+        height=520,
+        showlegend=False,
     )
-    fig3.update_layout(yaxis=dict(autorange="reversed"), height=520)
     fig3.write_html(f"{OUTPUT_DIR}/16_churn_vs_retained_motifs.html")
     print(f"  Saved: {OUTPUT_DIR}/16_churn_vs_retained_motifs.html")
 
     print("\n[OK] N-gram workflow analysis complete.")
 
-
-if __name__ == "__main__":
-    main()
+# Zerve: call main() directly (no __main__ guard)
+main()

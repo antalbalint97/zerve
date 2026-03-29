@@ -1,11 +1,13 @@
 import sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 from analytics.io import OUTPUT_DIR, ensure_output_dir, load_events, load_features
 from analytics.viz import write_html
@@ -15,7 +17,10 @@ warnings.filterwarnings("ignore")
 DATA_PATH = "zerve_events.csv"
 FEAT_PATH = "outputs/user_features_segmented.parquet"
 CANVAS_PATH = "outputs/canvas_complexity_features.parquet"
-CHURN_PATH = "outputs/15_churn_scored_users.parquet"
+CHURN_PATH_CANDIDATES = [
+    "outputs/14_churn_scored_users.parquet",
+    "outputs/15_churn_scored_users.parquet",
+]
 INTERVENTION_PATH = "outputs/18_intervention_scored_users.parquet"
 
 STRUGGLE_EVENTS = {
@@ -51,7 +56,13 @@ def main() -> None:
     events = load_events(DATA_PATH)
     canvas = pd.read_parquet(CANVAS_PATH)
     canvas.index = canvas.index.astype(str)
-    churn = pd.read_parquet(CHURN_PATH).set_index("person_id")
+    churn_path = next((p for p in CHURN_PATH_CANDIDATES if Path(p).exists()), None)
+    if churn_path is None:
+        raise FileNotFoundError(
+            f"None of the expected churn outputs exist: {CHURN_PATH_CANDIDATES}"
+        )
+    print(f"  Using churn file: {churn_path}")
+    churn = pd.read_parquet(churn_path).set_index("person_id")
     intervention = pd.read_parquet(INTERVENTION_PATH).set_index("person_id")
     if "person_id" not in events.columns:
         events["person_id"] = events.index.astype(str)
@@ -198,57 +209,141 @@ def main() -> None:
     summary.to_csv(f"{OUTPUT_DIR}/19_quality_of_struggle_summary.csv", index=False)
     print(f"  Saved: {OUTPUT_DIR}/19_quality_of_struggle_summary.csv")
 
-    fig1 = px.bar(
-        summary,
-        x="struggle_class",
-        y="users",
-        color="avg_quality_score",
+    fig1 = go.Figure()
+    fig1.add_trace(go.Bar(
+        x=summary["struggle_class"],
+        y=summary["users"],
+        marker=dict(
+            color=summary["avg_quality_score"],
+            colorscale="Teal",
+            showscale=True,
+            colorbar=dict(title="Avg quality score"),
+        ),
+        text=summary["users"],
+        textposition="outside",
+        showlegend=False,
+    ))
+    fig1.update_layout(
         title="Quality of Struggle Classes<br><sup>Who is struggling productively vs stalling out?</sup>",
         template="plotly_dark",
-        labels={"struggle_class": "", "users": "Users", "avg_quality_score": "Avg quality score"},
-        color_continuous_scale="Teal",
-        text="users",
+        xaxis_title="",
+        yaxis_title="Users",
+        height=420,
     )
-    fig1.update_traces(textposition="outside")
     write_html(fig1, f"{OUTPUT_DIR}/19_quality_of_struggle_mix.html")
     print(f"  Saved: {OUTPUT_DIR}/19_quality_of_struggle_mix.html")
 
-    fig2 = px.bar(
-        summary.melt(
-            id_vars="struggle_class",
-            value_vars=[
-                "avg_quality_score",
-                "avg_abandonment_risk",
-                "avg_recovery_intensity",
-                "avg_churn_probability",
-            ],
-        ),
-        x="struggle_class",
-        y="value",
-        color="variable",
+    signal_plot = summary.melt(
+        id_vars="struggle_class",
+        value_vars=[
+            "avg_quality_score",
+            "avg_abandonment_risk",
+            "avg_recovery_intensity",
+            "avg_churn_probability",
+        ],
+        var_name="metric",
+        value_name="value",
+    )
+    metric_order = [
+        "avg_quality_score",
+        "avg_abandonment_risk",
+        "avg_recovery_intensity",
+        "avg_churn_probability",
+    ]
+    metric_labels = {
+        "avg_quality_score": "Avg quality score",
+        "avg_abandonment_risk": "Avg abandonment risk",
+        "avg_recovery_intensity": "Avg recovery intensity",
+        "avg_churn_probability": "Avg churn probability",
+    }
+    metric_colors = {
+        "avg_quality_score": "#00b4d8",
+        "avg_abandonment_risk": "#ff6b6b",
+        "avg_recovery_intensity": "#90e0ef",
+        "avg_churn_probability": "#ffd166",
+    }
+    fig2 = go.Figure()
+    for metric in metric_order:
+        sub = signal_plot[signal_plot["metric"] == metric]
+        if len(sub) == 0:
+            continue
+        fig2.add_trace(go.Bar(
+            x=sub["struggle_class"],
+            y=sub["value"],
+            name=metric_labels.get(metric, metric),
+            marker_color=metric_colors.get(metric, "#888"),
+        ))
+    fig2.update_layout(
         barmode="group",
         title="Quality of Struggle Signal Profile<br><sup>Recovery, abandonment risk, and churn by struggle class</sup>",
         template="plotly_dark",
-        labels={"struggle_class": "", "value": "Average score", "variable": ""},
+        xaxis_title="",
+        yaxis_title="Average score",
+        legend_title_text="",
+        height=420,
     )
     write_html(fig2, f"{OUTPUT_DIR}/19_quality_of_struggle_signals.html")
     print(f"  Saved: {OUTPUT_DIR}/19_quality_of_struggle_signals.html")
 
     struggle_users = scored[scored["had_struggle_signal"] == 1].copy()
     if len(struggle_users) > 0:
-        fig3 = px.scatter(
-            struggle_users,
-            x="recovery_intensity",
-            y="abandonment_risk_after_struggle",
-            color="struggle_class",
-            size="struggle_events",
-            hover_data=["person_id", "segment", "recommended_intervention", "quality_of_struggle_score"],
+        fig3 = go.Figure()
+        class_order = struggle_users["struggle_class"].drop_duplicates().tolist()
+        palette = [
+            "#00b4d8",
+            "#48cae4",
+            "#90e0ef",
+            "#ffd166",
+            "#ef476f",
+            "#8338ec",
+        ]
+        color_map = {
+            label: palette[i % len(palette)]
+            for i, label in enumerate(class_order)
+        }
+        for label in class_order:
+            sub = struggle_users[struggle_users["struggle_class"] == label]
+            if len(sub) == 0:
+                continue
+            fig3.add_trace(go.Scatter(
+                x=sub["recovery_intensity"],
+                y=sub["abandonment_risk_after_struggle"],
+                mode="markers",
+                name=label,
+                marker=dict(
+                    color=color_map.get(label, "#888"),
+                    size=(sub["struggle_events"].fillna(0) * 4 + 8),
+                    opacity=0.75,
+                    sizemode="diameter",
+                ),
+                customdata=np.stack(
+                    [
+                        sub["person_id"].astype(str),
+                        sub["segment"].astype(str),
+                        sub["recommended_intervention"].astype(str),
+                        sub["quality_of_struggle_score"].fillna(0),
+                        sub["struggle_events"].fillna(0),
+                    ],
+                    axis=-1,
+                ),
+                hovertemplate=(
+                    "Struggle class=%{fullData.name}<br>"
+                    "Person ID=%{customdata[0]}<br>"
+                    "Segment=%{customdata[1]}<br>"
+                    "Recommended intervention=%{customdata[2]}<br>"
+                    "Recovery intensity=%{x:.3f}<br>"
+                    "Abandonment risk=%{y:.3f}<br>"
+                    "Quality score=%{customdata[3]:.3f}<br>"
+                    "Struggle events=%{customdata[4]}<extra></extra>"
+                ),
+            ))
+        fig3.update_layout(
             title="Recovery vs Abandonment After Struggle<br><sup>Users with visible struggle signals only</sup>",
             template="plotly_dark",
-            labels={
-                "recovery_intensity": "Recovery intensity",
-                "abandonment_risk_after_struggle": "Abandonment risk",
-            },
+            xaxis_title="Recovery intensity",
+            yaxis_title="Abandonment risk",
+            legend_title_text="",
+            height=500,
         )
         write_html(fig3, f"{OUTPUT_DIR}/19_recovery_vs_abandonment.html")
         print(f"  Saved: {OUTPUT_DIR}/19_recovery_vs_abandonment.html")
@@ -271,6 +366,5 @@ def main() -> None:
 
     print("\n[OK] Quality of struggle analysis complete.")
 
-
-if __name__ == "__main__":
-    main()
+# Zerve: call main() directly (no __main__ guard)
+main()

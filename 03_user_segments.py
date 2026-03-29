@@ -1,20 +1,21 @@
 import sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 """
 =============================================================
- 03_user_segments.py  --  Viselkedési Szegmentáció
+ 03_user_segments.py  --  Behavioral Segmentation
  Zerve Hackathon 2026
 =============================================================
 Input : outputs/user_features.parquet
 Output: outputs/user_features_segmented.parquet
         outputs/03_segments_*.html
 
-4 szegmens a valós Zerve használat alapján:
+4 segments based on real Zerve usage patterns:
 
-  Agent Builder   -- az agent írja/refaktorálja a workflow-t
-  Agent Runner    -- az agent futtatja a kódot, de manuálisan is dolgozik
-  Manual Coder    -- hagyományos notebook felhasználó, kevés agent
-  Viewer/Ghost    -- nézelődik vagy szinte nem használja
+  Agent Builder   -- agent writes/refactors the workflow
+  Agent Runner    -- agent runs the code, but also works manually
+  Manual Coder    -- traditional notebook user, minimal agent usage
+  Viewer/Ghost    -- browses or barely uses the platform
 """
 
 import pandas as pd
@@ -38,9 +39,9 @@ print("Loading features...")
 feat = load_features(INPUT_PATH)
 print(f"  {len(feat):,} users  |  {feat.shape[1]} features")
 
-# -- RULE-BASED SZEGMENTACIO -------------------------------
-# Elsősorban szabály-alapú, mert a klaszterezés a 95%-os ghost csoportra
-# konvergálna -- a szabályok Zerve-specifikusak és interpretálhatók
+# -- RULE-BASED SEGMENTATION -------------------------------
+# Primarily rule-based, because clustering would converge on the 95% ghost group
+# -- the rules are Zerve-specific and interpretable
 
 def assign_segment(row):
     has_agent      = row["ever_used_agent"] >= 1
@@ -51,29 +52,29 @@ def assign_segment(row):
     total          = row["total_events"]
     conversations  = row.get("agent_conversations", 0)
 
-    # Ghost: szinte semmi aktivitás
+    # Ghost: almost no activity
     if total <= 5 or days == 0:
         return "Ghost"
 
-    # Agent Builder: az agent főleg épít/refaktorál
+    # Agent Builder: agent primarily builds/refactors
     if has_agent and build_calls >= 3:
         return "Agent Builder"
 
-    # Agent Runner: az agent futtat, de manuális is van
+    # Agent Runner: agent runs code, but manual work also present
     if has_agent and (run_calls >= 3 or conversations >= 2):
         return "Agent Runner"
 
-    # Manual Coder: fut kódot de agent nélkül vagy minimális agenttel
+    # Manual Coder: runs code without agent or with minimal agent usage
     if manual_runs >= 3:
         return "Manual Coder"
 
-    # Viewer/Explorer: nézelődik, fullscreen, de nem futtat sokat
+    # Viewer/Explorer: browses, fullscreen, but doesn't run much
     return "Viewer"
 
 feat["segment"] = feat.apply(assign_segment, axis=1)
 
-# -- SZEGMENS STATISZTIKAK --------------------------------
-print("\n-- Szegmens eloszlas --")
+# -- SEGMENT STATISTICS ------------------------------------
+print("\n-- Segment distribution --")
 seg_stats = (
     feat.groupby("segment").agg(
         users              = ("total_events", "count"),
@@ -90,14 +91,14 @@ seg_stats = (
 )
 seg_stats["pct_of_users"] = (seg_stats["users"] / len(feat) * 100).round(1)
 
-# Rendezés engagement szerint
+# Sort by engagement
 seg_order = ["Agent Builder", "Agent Runner", "Manual Coder", "Viewer", "Ghost"]
 seg_stats = seg_stats.reindex([s for s in seg_order if s in seg_stats.index])
 
 print(seg_stats[["users", "pct_of_users", "avg_days_active",
                   "avg_manual_runs", "avg_agent_tools", "avg_build_calls"]].to_string())
 
-# Szegmens sorrend és szín mentése
+# Save segment order and colors
 SEGMENT_COLORS = {
     "Agent Builder" : "#00b4d8",
     "Agent Runner"  : "#48cae4",
@@ -106,9 +107,9 @@ SEGMENT_COLORS = {
     "Ghost"         : "#2d2d3a",
 }
 
-# -- VIZUALIZACIOK -----------------------------------------
+# -- VISUALIZATIONS ----------------------------------------
 
-# 1. Szegmens méret pie
+# 1. Segment size pie
 fig1 = go.Figure(go.Pie(
     labels=seg_stats.index,
     values=seg_stats["users"],
@@ -118,21 +119,21 @@ fig1 = go.Figure(go.Pie(
     textfont_size=12,
 ))
 fig1.update_layout(
-    title="Zerve User Segments<br><sup>Viselkedés-alapú szegmentáció</sup>",
+    title="Zerve User Segments<br><sup>Behavior-based segmentation</sup>",
     template="plotly_dark",
     height=450,
 )
 write_html(fig1, f"{OUTPUT_DIR}/03_segment_sizes.html")
 print(f"\n  Saved: {OUTPUT_DIR}/03_segment_sizes.html")
 
-# 2. Szegmens profil radar
+# 2. Segment profile radar
 radar_metrics = {
-    "Napok aktív"      : "avg_days_active",
-    "Manuális futtatás": "avg_manual_runs",
-    "Agent tool hívás" : "avg_agent_tools",
+    "Days active"      : "avg_days_active",
+    "Manual runs": "avg_manual_runs",
+    "Agent tool calls" : "avg_agent_tools",
     "Agent build"      : "avg_build_calls",
     "Agent run"        : "avg_run_calls",
-    "Canvasok"         : "avg_canvases",
+    "Canvases"         : "avg_canvases",
 }
 
 fig2 = go.Figure()
@@ -157,14 +158,14 @@ for seg in ["Agent Builder", "Agent Runner", "Manual Coder", "Viewer"]:
 
 fig2.update_layout(
     polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-    title="Szegmens Viselkedési Profil<br><sup>Normalizált értékek</sup>",
+    title="Segment Behavioral Profile<br><sup>Normalized values</sup>",
     template="plotly_dark",
     height=500,
 )
 write_html(fig2, f"{OUTPUT_DIR}/03_segment_radar.html")
 print(f"  Saved: {OUTPUT_DIR}/03_segment_radar.html")
 
-# 3. Agent tool mix szegmensenként
+# 3. Agent tool mix by segment
 tool_cols = [c for c in feat.columns if c.startswith("tool_")]
 if tool_cols:
     tool_by_seg = (
@@ -180,7 +181,7 @@ if tool_cols:
         tool_by_seg.reset_index().melt(id_vars="segment"),
         x="segment", y="value", color="variable",
         barmode="stack",
-        title="Agent Tool Használat Szegmensenként<br><sup>Átlag tool call / user</sup>",
+        title="Agent Tool Usage by Segment<br><sup>Avg tool calls per user</sup>",
         template="plotly_dark",
         color_discrete_sequence=px.colors.sequential.Teal,
         labels={"value": "Avg tool calls", "variable": "Tool", "segment": ""},
@@ -188,7 +189,7 @@ if tool_cols:
     write_html(fig3, f"{OUTPUT_DIR}/03_segment_tool_mix.html")
     print(f"  Saved: {OUTPUT_DIR}/03_segment_tool_mix.html")
 
-# 4. Signup kohorsz x szegmens heatmap
+# 4. Signup cohort x segment heatmap
 cohort_seg = (
     feat.groupby(["signup_cohort", "segment"])
     .size()
@@ -201,9 +202,9 @@ fig4 = px.imshow(
     cohort_seg_pct.T,
     text_auto=".1f",
     color_continuous_scale="Blues",
-    title="Szegmens Arányok Signup Kohorszonként (%)<br><sup>Melyik kohorsz termelte a legtöbb power usert?</sup>",
+    title="Segment Proportions by Signup Cohort (%)<br><sup>Which cohort produced the most power users?</sup>",
     template="plotly_dark",
-    labels=dict(x="Signup kohorsz", y="Szegmens", color="%"),
+    labels=dict(x="Signup cohort", y="Segment", color="%"),
     aspect="auto",
 )
 write_html(fig4, f"{OUTPUT_DIR}/03_cohort_segment_heatmap.html")
@@ -212,36 +213,41 @@ print(f"  Saved: {OUTPUT_DIR}/03_cohort_segment_heatmap.html")
 # 5. Agent adoption: early vs late
 if "ttf_agent_tool_min" in feat.columns:
     non_ghost = feat[feat["segment"] != "Ghost"].copy()
-    non_ghost["agent_adoption"] = "Nem használja"
-    non_ghost.loc[non_ghost["ever_used_agent"] == 1, "agent_adoption"] = "Késői adoptáló"
-    non_ghost.loc[non_ghost["adopted_agent_early"] == 1, "agent_adoption"] = "Korai adoptáló (<1h)"
+    non_ghost["agent_adoption"] = "Never used agent"
+    non_ghost.loc[non_ghost["ever_used_agent"] == 1, "agent_adoption"] = "Late adopter (1h+)"
+    non_ghost.loc[non_ghost["adopted_agent_early"] == 1, "agent_adoption"] = "Early adopter (<1h)"
 
     adoption_seg = (
         non_ghost.groupby(["segment", "agent_adoption"])
         .size().unstack(fill_value=0)
     )
+    melted = adoption_seg.reset_index().melt(id_vars="segment")
+    # Safe color map: only include groups that actually exist in data
+    _all_colors = {
+        "Early adopter (<1h)": "#00b4d8",
+        "Late adopter (1h+)": "#90e0ef",
+        "Never used agent": "#555566",
+    }
+    _actual = set(melted["agent_adoption"].unique())
+    _safe_colors = {k: v for k, v in _all_colors.items() if k in _actual}
     fig5 = px.bar(
-        adoption_seg.reset_index().melt(id_vars="segment"),
+        melted,
         x="segment", y="value", color="agent_adoption",
         barmode="group",
-        title="Agent Adoptáció Szegmensenként<br><sup>Korai vs késői vs nem adoptáló</sup>",
+        title="Agent Adoption by Segment<br><sup>Early vs late vs never adopted</sup>",
         template="plotly_dark",
-        color_discrete_map={
-            "Korai adoptáló (<1h)": "#00b4d8",
-            "Késői adoptáló"      : "#90e0ef",
-            "Nem használja"       : "#555566",
-        },
+        color_discrete_map=_safe_colors,
         labels={"value": "Users", "segment": "", "agent_adoption": ""},
     )
     write_html(fig5, f"{OUTPUT_DIR}/03_agent_adoption_by_segment.html")
     print(f"  Saved: {OUTPUT_DIR}/03_agent_adoption_by_segment.html")
 
-# -- MENTES -----------------------------------------------
+# -- SAVE -------------------------------------------------
 feat.to_parquet(f"{OUTPUT_DIR}/user_features_segmented.parquet")
 feat.to_csv(f"{OUTPUT_DIR}/user_features_segmented.csv")
 
 print(f"\n  Saved: {OUTPUT_DIR}/user_features_segmented.parquet")
-print(f"\n  Szegmens összefoglaló:")
+print(f"\n  Segment summary:")
 for seg in seg_order:
     if seg in seg_stats.index:
         row = seg_stats.loc[seg]

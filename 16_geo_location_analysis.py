@@ -1,10 +1,14 @@
 import sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import warnings
 
+from pathlib import Path
+
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 from analytics.events import get_user_country, map_country_region
 from analytics.io import OUTPUT_DIR, ensure_output_dir, load_events, load_features
@@ -15,7 +19,10 @@ warnings.filterwarnings("ignore")
 DATA_PATH = "zerve_events.csv"
 FEAT_PATH = "outputs/user_features_segmented.parquet"
 CANVAS_COMPLEXITY_PATH = "outputs/canvas_complexity_features.parquet"
-CHURN_PATH = "outputs/15_churn_scored_users.parquet"
+CHURN_PATH_CANDIDATES = [
+    "outputs/14_churn_scored_users.parquet",
+    "outputs/15_churn_scored_users.parquet",
+]
 MIN_USERS = 40
 
 
@@ -27,7 +34,13 @@ def main() -> None:
     events = load_events(DATA_PATH)
     canvas = pd.read_parquet(CANVAS_COMPLEXITY_PATH)
     canvas.index = canvas.index.astype(str)
-    churn = pd.read_parquet(CHURN_PATH).set_index("person_id")
+    churn_path = next((p for p in CHURN_PATH_CANDIDATES if Path(p).exists()), None)
+    if churn_path is None:
+        raise FileNotFoundError(
+            f"None of the expected churn outputs exist: {CHURN_PATH_CANDIDATES}"
+        )
+    print(f"  Using churn file: {churn_path}")
+    churn = pd.read_parquet(churn_path).set_index("person_id")
     churn_target_cols = ["churn_probability"]
     if "is_14d_survival_churn_proxy" in churn.columns:
         churn_target_cols.append("is_14d_survival_churn_proxy")
@@ -90,15 +103,37 @@ def main() -> None:
         .size()
         .reset_index(name="users")
     )
-    fig1 = px.bar(
-        seg_mix,
-        x="country_code",
-        y="users",
-        color="segment",
+    seg_mix_matrix = (
+        seg_mix.pivot(index="country_code", columns="segment", values="users")
+        .fillna(0)
+    )
+    segment_order = ["Agent Builder", "Manual Coder", "Viewer", "Ghost"]
+    seg_mix_matrix = seg_mix_matrix.reindex(
+        columns=[s for s in segment_order if s in seg_mix_matrix.columns],
+        fill_value=0,
+    )
+    seg_colors = {
+        "Agent Builder": "#00b4d8",
+        "Manual Coder": "#90e0ef",
+        "Viewer": "#555566",
+        "Ghost": "#2d2d3a",
+    }
+    fig1 = go.Figure()
+    for segment in seg_mix_matrix.columns:
+        fig1.add_trace(go.Bar(
+            x=seg_mix_matrix.index,
+            y=seg_mix_matrix[segment],
+            name=segment,
+            marker_color=seg_colors.get(segment, "#888"),
+        ))
+    fig1.update_layout(
         barmode="stack",
         title="Country Segment Mix<br><sup>Where are the Agent Builders, Viewers, and Ghosts concentrated?</sup>",
         template="plotly_dark",
-        labels={"country_code": "Country", "users": "Users", "segment": ""},
+        xaxis_title="Country",
+        yaxis_title="Users",
+        legend_title_text="",
+        height=420,
     )
     fig1.write_html(f"{OUTPUT_DIR}/17_country_segment_mix.html")
     print(f"  Saved: {OUTPUT_DIR}/17_country_segment_mix.html")
@@ -117,15 +152,49 @@ def main() -> None:
     for col in ["pct_ever_agent", "pct_repeat_session", "pct_onboarding_complete", "pct_agent_builder"]:
         region_metrics[col] *= 100
 
-    fig2 = px.bar(
-        region_metrics.melt(id_vars="region_group", value_vars=["pct_ever_agent", "pct_repeat_session", "pct_onboarding_complete", "pct_agent_builder"]),
-        x="region_group",
-        y="value",
-        color="variable",
+    region_plot = region_metrics.melt(
+        id_vars="region_group",
+        value_vars=["pct_ever_agent", "pct_repeat_session", "pct_onboarding_complete", "pct_agent_builder"],
+        var_name="metric",
+        value_name="value",
+    )
+    metric_order = [
+        "pct_ever_agent",
+        "pct_repeat_session",
+        "pct_onboarding_complete",
+        "pct_agent_builder",
+    ]
+    metric_labels = {
+        "pct_ever_agent": "Ever used agent %",
+        "pct_repeat_session": "Repeat session %",
+        "pct_onboarding_complete": "Onboarding complete %",
+        "pct_agent_builder": "Agent Builder %",
+    }
+    metric_colors = {
+        "pct_ever_agent": "#00b4d8",
+        "pct_repeat_session": "#48cae4",
+        "pct_onboarding_complete": "#90e0ef",
+        "pct_agent_builder": "#ffd166",
+    }
+    fig2 = go.Figure()
+    for metric in metric_order:
+        sub = region_plot[region_plot["metric"] == metric]
+        if len(sub) == 0:
+            continue
+        fig2.add_trace(go.Bar(
+            x=sub["region_group"],
+            y=sub["value"],
+            name=metric_labels.get(metric, metric),
+            marker_color=metric_colors.get(metric, "#888"),
+        ))
+    fig2.update_layout(
         barmode="group",
         title="Geo Onboarding and Activation Effectiveness<br><sup>India vs US vs EU vs Other</sup>",
         template="plotly_dark",
-        labels={"region_group": "", "value": "%", "variable": ""},
+        xaxis_title="",
+        yaxis_title="%",
+        legend_title_text="",
+        height=420,
     )
     fig2.write_html(f"{OUTPUT_DIR}/17_geo_onboarding_effectiveness.html")
     print(f"  Saved: {OUTPUT_DIR}/17_geo_onboarding_effectiveness.html")
@@ -149,6 +218,5 @@ def main() -> None:
 
     print("\n[OK] Geo location analysis complete.")
 
-
-if __name__ == "__main__":
-    main()
+# Zerve: call main() directly (no __main__ guard)
+main()

@@ -1,8 +1,9 @@
-import sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+﻿import sys
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 """
 =============================================================
- 06_kpi_and_modeling.py  --  KPI Számítás & Modellezés
+ 06_kpi_and_modeling.py  --  KPI Calculation & Modeling
  Zerve Hackathon 2026
 =============================================================
 Input : outputs/user_features_segmented.parquet
@@ -10,9 +11,9 @@ Output: outputs/06_kpi_*.html
         outputs/06_model_*.html
         outputs/model_rf.joblib
 
-KPI-ok szegmens x kohorsz mátrixban, majd ML modell
-ami megjósolja hogy egy user Agent Builder/Runner lesz-e
-(= a "siker" definíció, ami most már adatalapú).
+KPIs in a segment x cohort matrix, followed by an ML model
+that predicts whether a user will become an Agent Builder/Runner
+(= the definition of "success", now data-driven).
 """
 
 import pandas as pd
@@ -43,7 +44,7 @@ print(f"  {len(feat):,} users  |  {feat.shape[1]} features")
 # =======================================================
 # A) KPI MATRIX
 # =======================================================
-print("\n-- A) KPI Mátrix --")
+print("\n-- A) KPI Matrix --")
 
 kpi_by_seg = feat.groupby("segment").agg(
     users                   = ("total_events", "count"),
@@ -81,16 +82,16 @@ print(kpi_by_seg[["users", "pct_of_users", "avg_days_active",
 
 # KPI heatmap
 display_kpis = {
-    "Avg aktív nap"    : "avg_days_active",
+    "Avg active days"    : "avg_days_active",
     "Avg manual run"   : "avg_manual_runs",
     "Avg agent tool"   : "avg_agent_tools",
     "Avg agent build"  : "avg_agent_build",
     "Avg canvas"       : "avg_canvases",
-    "% 3+ napos"       : "pct_multi_day",
-    "% 7+ napos"       : "pct_week_plus",
-    "% kredit limit"   : "pct_credit_exceeded",
-    "% agent használ"  : "pct_ever_agent",
-    "% korai adoptáló" : "pct_early_adopter",
+    "% 3+ day users"       : "pct_multi_day",
+    "% 7+ day users"       : "pct_week_plus",
+    "% credit limit"   : "pct_credit_exceeded",
+    "% used agent"  : "pct_ever_agent",
+    "% early adopter" : "pct_early_adopter",
 }
 
 kpi_heatmap = pd.DataFrame({
@@ -99,20 +100,20 @@ kpi_heatmap = pd.DataFrame({
     if col in kpi_by_seg.columns
 })
 
-# Normalizálás soronként
+# Normalization by column
 kpi_norm = kpi_heatmap.apply(lambda x: x / x.max() if x.max() > 0 else x, axis=0)
 
 fig_kpi = px.imshow(
     kpi_norm.T,
     text_auto=False,
     color_continuous_scale="Blues",
-    title="KPI Mátrix -- Szegmens x Mutató<br><sup>Normalizált értékek (1.0 = legjobb szegmens az adott mutatón)</sup>",
+    title="KPI Matrix -- Segment x Metric<br><sup>Normalized values (1.0 = best segment on given metric)</sup>",
     template="plotly_dark",
     aspect="auto",
-    labels=dict(x="Szegmens", y="KPI", color="Normalizált érték"),
+    labels=dict(x="Segment", y="KPI", color="Normalized value"),
 )
 
-# Tényleges értékek annotációként
+# Actual values as annotations
 for i, kpi_label in enumerate(kpi_norm.columns):
     for j, seg in enumerate(kpi_norm.index):
         raw_val = kpi_heatmap.loc[seg, kpi_label] if kpi_label in kpi_heatmap.columns else 0
@@ -126,7 +127,7 @@ for i, kpi_label in enumerate(kpi_norm.columns):
 write_html(fig_kpi, f"{OUTPUT_DIR}/06_kpi_heatmap.html")
 print(f"  Saved: {OUTPUT_DIR}/06_kpi_heatmap.html")
 
-# KPI kohorszonként is
+# KPIs by cohort as well
 kpi_cohort = feat.groupby("signup_cohort").agg(
     users               = ("total_events", "count"),
     avg_days_active     = ("days_active", "mean"),
@@ -139,12 +140,12 @@ kpi_cohort = feat.groupby("signup_cohort").agg(
 ).round(2)
 kpi_cohort["pct_ever_agent"] *= 100
 
-print("\n-- KPI kohorszonként --")
+print("\n-- KPIs by cohort --")
 print(kpi_cohort[["users", "pct_power_user", "pct_ghost",
                     "pct_ever_agent", "avg_days_active"]].to_string())
 
 fig_kpi2 = make_subplots(rows=1, cols=2,
-    subplot_titles=["Power User % kohorszonként", "Ghost % kohorszonként"])
+    subplot_titles=["Power User % by cohort", "Ghost % by cohort"])
 colors = ["#00b4d8", "#48cae4", "#90e0ef", "#0077b6"]
 fig_kpi2.add_trace(go.Bar(x=kpi_cohort.index, y=kpi_cohort["pct_power_user"].round(1),
     marker_color=colors, text=kpi_cohort["pct_power_user"].round(1),
@@ -153,28 +154,28 @@ fig_kpi2.add_trace(go.Bar(x=kpi_cohort.index, y=kpi_cohort["pct_ghost"].round(1)
     marker_color=["#ff6b6b"]*4, text=kpi_cohort["pct_ghost"].round(1),
     texttemplate="%{text}%", showlegend=False), row=1, col=2)
 fig_kpi2.update_layout(
-    title="KPI Trend Kohorszonként<br><sup>Javul a platform? Több power user, kevesebb ghost?</sup>",
+    title="KPI Trend by Cohort<br><sup>Is the platform improving? More power users, fewer ghosts?</sup>",
     template="plotly_dark", height=400,
 )
 write_html(fig_kpi2, f"{OUTPUT_DIR}/06_kpi_cohort_trend.html")
 print(f"  Saved: {OUTPUT_DIR}/06_kpi_cohort_trend.html")
 
 # =======================================================
-# B) MODELLEZES -- KET SZINT
+# B) MODELING -- TWO LEVELS
 #
-# B1. TELJES POPULACIO: ki lesz Agent Builder?
-#     (korai jelzok alapjan, leakage-mentes)
+# B1. FULL POPULATION: who becomes an Agent Builder?
+#     (based on early signals, leakage-free)
 #
-# B2. SZUKITETT: csak az agent-et hasznalon belul
+# B2. NARROWED: only among users who used the agent
 #     ki lesz Agent Builder vs Viewer/Manual Coder?
-#     Ez az erdekesebb kerdes -- itt nincs trivialis
-#     "soha nem nyitotta meg" baseline effektus
+#     This is the more interesting question -- there is no trivial
+#     "never opened it" baseline effect
 # =======================================================
-print("\n-- B) Modellezes --")
+print("\n-- B) Modeling --")
 
 feat["is_agent_builder"] = (feat["segment"] == "Agent Builder").astype(int)
 
-# Korai jelzok -- az elso nap utan merheto viselkedés
+# Early signals -- behavior measurable after the first day
 BASE_EARLY_FEATURES = [
     "ttf_manual_run_min",
     "ttf_agent_tool_min",
@@ -188,7 +189,7 @@ BASE_EARLY_FEATURES = [
     "completed_onboarding",
 ]
 
-# Uj feature-ok az elso sessionbol es visszateresbol
+# New features from the first session and return behavior
 NEW_EARLY_FEATURES = [
     "first_session_events",
     "first_session_event_types",
@@ -201,7 +202,7 @@ NEW_EARLY_FEATURES = [
     "signup_is_weekend",
 ]
 
-# Referrer one-hot oszlopok
+# Referrer one-hot columns
 ref_cols = [c for c in feat.columns if c.startswith("ref_")]
 
 ALL_EARLY_FEATURES = BASE_EARLY_FEATURES + NEW_EARLY_FEATURES + ref_cols
@@ -226,9 +227,9 @@ models = {
 }
 
 # -------------------------------------------------------
-# B1. TELJES POPULACIO
+# B1. FULL POPULATION
 # -------------------------------------------------------
-print("\n  B1. Teljes populacio (n=4,771)")
+print("\n  B1. Full population (n=4,771)")
 print(f"  Target: Agent Builder {feat['is_agent_builder'].sum():,} ({feat['is_agent_builder'].mean()*100:.1f}%)")
 
 X_full = feat[X_cols].fillna(0)
@@ -244,19 +245,19 @@ for name, model in models.items():
     print(f"    {name:<25} AUC={auc.mean():.3f}+/-{auc.std():.3f}  AvgPrec={ap.mean():.3f}")
 
 # -------------------------------------------------------
-# B2. SZUKITETT -- csak agent-et hasznalon belul
+# B2. NARROWED -- only among users who used the agent
 # -------------------------------------------------------
-print("\n  B2. Szukitett: csak agent-et valaha hasznalt userek (n=649)")
-print("  Kerdes: az agent-et hasznalon belul mi kulonbozteti meg")
-print("  az Agent Buildert a Viewer-tol/Manual Codertol?")
+print("\n  B2. Narrowed: users who ever used the agent (n=649)")
+print("  Question: among agent users, what distinguishes")
+print("  Agent Builders from Viewers/Manual Coders?")
 
 agent_users = feat[feat["ever_used_agent"] == 1].copy()
 n_ab = (agent_users["segment"] == "Agent Builder").sum()
 print(f"\n  Agent Builder : {n_ab:,} ({n_ab/len(agent_users)*100:.1f}%)")
-print(f"  Tobbi agent user: {len(agent_users)-n_ab:,} ({(1-n_ab/len(agent_users))*100:.1f}%)")
+print(f"  Other agent users: {len(agent_users)-n_ab:,} ({(1-n_ab/len(agent_users))*100:.1f}%)")
 
-# Korai jelzokbol kizarjuk az ever_used_agent-et (mindenki 1)
-# es a ttf_agent_* -ot helyettesitjuk a relatív idővel
+# Exclude ever_used_agent from early signals here (everyone is 1)
+# and replace ttf_agent_* with relative timing
 X_narrow_cols = [c for c in X_cols if c != "ever_used_agent"]
 X_narrow = agent_users[X_narrow_cols].fillna(0)
 y_narrow = (agent_users["segment"] == "Agent Builder").astype(int)
@@ -266,7 +267,7 @@ print("\n  Cross-validation (5-fold):")
 b2_results = {}
 for name, model in models.items():
     if len(y_narrow.unique()) < 2:
-        print(f"    {name:<25} -- skip (csak 1 osztaly)")
+        print(f"    {name:<25} -- skip (only 1 class)")
         continue
     auc = cross_val_score(model, X_narrow, y_narrow, cv=cv, scoring="roc_auc", n_jobs=1)
     ap  = cross_val_score(model, X_narrow, y_narrow, cv=cv, scoring="average_precision", n_jobs=1)
@@ -274,7 +275,7 @@ for name, model in models.items():
     print(f"    {name:<25} AUC={auc.mean():.3f}+/-{auc.std():.3f}  AvgPrec={ap.mean():.3f}")
 
 # -------------------------------------------------------
-# Final RF modellek mentese
+# Save final RF models
 # -------------------------------------------------------
 # B1 final model
 rf_full = RandomForestClassifier(n_estimators=300, min_samples_leaf=3,
@@ -291,28 +292,28 @@ joblib.dump(rf_narrow, f"{OUTPUT_DIR}/model_rf_narrow.joblib")
 joblib.dump(X_narrow_cols, f"{OUTPUT_DIR}/feature_names_narrow.joblib")
 
 # -------------------------------------------------------
-# Feature importance -- B2 (szukitett, erdekesebb)
+# Feature importance -- B2 (narrowed, more interesting)
 # -------------------------------------------------------
 fi = pd.DataFrame({
     "feature"   : X_narrow_cols,
     "importance": rf_narrow.feature_importances_,
 }).sort_values("importance", ascending=False).head(15)
 
-print("\n  -- Feature importance (szukitett modell, agent userek kozott) --")
+print("\n  -- Feature importance (narrowed model, among agent users) --")
 FEATURE_NOTES = {
-    "ttf_agent_tool_min"       : "Minel hamarabb, annal valoszinubb a siker",
-    "adopted_agent_early"      : "Elso 1 oraban hasznalta az agentet",
-    "ttf_agent_chat_min"       : "Mikor nyitotta meg eloszor a chat-et",
-    "first_session_had_agent"  : "Elso sessionben volt-e agent interakcio",
-    "first_session_events"     : "Mennyire aktiv volt az elso sessionben",
-    "first_session_duration_min": "Mennyi ideig maradt az elso sessionben",
-    "had_second_session"       : "Visszajott-e egyaltalan masodszor",
-    "time_to_return_hours"     : "Minel hamarabb jott vissza, annal elkotelezetebb",
-    "ever_ran_manually"        : "Futtatott-e kodot manualisan is",
-    "signup_hour"              : "Napszak hatassal van az elkotelezodésre",
-    "signup_is_weekend"        : "Hetvegi regisztralo vs munkahelyi",
-    "ttf_manual_run_min"       : "Elso manualis futtas ideje",
-    "first_session_event_types": "Mennyire fedezte fel a platformot az elso sessionben",
+    "ttf_agent_tool_min"       : "The earlier they use it, the more likely success becomes",
+    "adopted_agent_early"      : "Used the agent within the first hour",
+    "ttf_agent_chat_min"       : "When they first opened the chat",
+    "first_session_had_agent"  : "Whether there was an agent interaction in the first session",
+    "first_session_events"     : "How active they were in the first session",
+    "first_session_duration_min": "How long they stayed in the first session",
+    "had_second_session"       : "Whether they came back for a second session at all",
+    "time_to_return_hours"     : "The sooner they returned, the more engaged they were",
+    "ever_ran_manually"        : "Whether they also ran code manually",
+    "signup_hour"              : "Time of day influences engagement",
+    "signup_is_weekend"        : "Weekend signup vs workday signup",
+    "ttf_manual_run_min"       : "Time of first manual run",
+    "first_session_event_types": "How much they explored the platform in the first session",
 }
 for _, row in fi.iterrows():
     if row["importance"] < 0.01:
@@ -323,11 +324,11 @@ for _, row in fi.iterrows():
 # Feature importance chart -- B2
 fig_fi_narrow = px.bar(
     fi, x="importance", y="feature", orientation="h",
-    title="Mi kulonbozteti meg az Agent Buildert a tobbi agent usertol?<br>"
-          "<sup>Csak agent-et hasznalon belul -- korai jelzok -- leakage-mentes</sup>",
+    title="What differentiates Agent Builders from other agent users?<br>"
+          "<sup>Only among users who used the agent -- early signals -- leakage-free</sup>",
     color="importance", color_continuous_scale="Teal",
     template="plotly_dark",
-    labels={"importance": "Fontossag", "feature": ""},
+    labels={"importance": "Importance", "feature": ""},
 )
 fig_fi_narrow.update_layout(yaxis=dict(autorange="reversed"), height=500, showlegend=False)
 write_html(fig_fi_narrow, f"{OUTPUT_DIR}/06_feature_importance_narrow.html")
@@ -341,24 +342,24 @@ fi_full = pd.DataFrame({
 
 fig_fi_full = px.bar(
     fi_full, x="importance", y="feature", orientation="h",
-    title="Mi jósolja meg az Agent Builder-re valast? (teljes populacio)<br>"
-          "<sup>Korai jelzok -- 10+9 feature -- leakage-mentes</sup>",
+    title="What predicts becoming an Agent Builder? (full population)<br>"
+          "<sup>Early signals -- 10+9 features -- leakage-free</sup>",
     color="importance", color_continuous_scale="Teal",
     template="plotly_dark",
-    labels={"importance": "Fontossag", "feature": ""},
+    labels={"importance": "Importance", "feature": ""},
 )
 fig_fi_full.update_layout(yaxis=dict(autorange="reversed"), height=500, showlegend=False)
 write_html(fig_fi_full, f"{OUTPUT_DIR}/06_feature_importance.html")
 print(f"  Saved: {OUTPUT_DIR}/06_feature_importance.html")
 
-# ROC curves -- mindket modell
+# ROC curves -- both models
 X_train_f, X_test_f, y_train_f, y_test_f = train_test_split(
     X_full, y_full, test_size=0.2, stratify=y_full, random_state=42)
 X_train_n, X_test_n, y_train_n, y_test_n = train_test_split(
     X_narrow, y_narrow, test_size=0.2, stratify=y_narrow, random_state=42)
 
 fig_roc = make_subplots(rows=1, cols=2,
-    subplot_titles=["B1: Teljes populacio", "B2: Csak agent userek"])
+    subplot_titles=["B1: Full population", "B2: Agent users only"])
 
 for name, model in models.items():
     # B1
@@ -389,14 +390,15 @@ for col in [1, 2]:
         line=dict(dash="dash", color="grey"), showlegend=False), row=1, col=col)
 
 fig_roc.update_layout(
-    title="ROC Görbek -- B1 (teljes) vs B2 (szukitett agent userek)<br>"
-          "<sup>Korai jelzok alapjan -- leakage-mentes</sup>",
+    title="ROC Curves -- B1 (full) vs B2 (agent users only)<br>"
+          "<sup>Based on early signals -- leakage-free</sup>",
     template="plotly_dark", height=420,
 )
 write_html(fig_roc, f"{OUTPUT_DIR}/06_roc_curves.html")
 print(f"  Saved: {OUTPUT_DIR}/06_roc_curves.html")
 
-print(f"\n  Modellek mentve:")
-print(f"    {OUTPUT_DIR}/model_rf_full.joblib    (teljes populacio)")
-print(f"    {OUTPUT_DIR}/model_rf_narrow.joblib  (agent userek kozott)")
+print(f"\n  Models saved:")
+print(f"    {OUTPUT_DIR}/model_rf_full.joblib    (full population)")
+print(f"    {OUTPUT_DIR}/model_rf_narrow.joblib  (among agent users)")
 print("\nKPI & Modeling complete.")
+

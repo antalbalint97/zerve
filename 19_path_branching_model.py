@@ -1,11 +1,12 @@
 import sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import warnings
 from collections import Counter
 
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 
 from analytics.io import OUTPUT_DIR, ensure_output_dir, load_events, load_features
 from analytics.viz import write_html
@@ -148,34 +149,84 @@ def main() -> None:
     branch_summary.to_csv(f"{OUTPUT_DIR}/20_branching_summary.csv", index=False)
     print(f"  Saved: {OUTPUT_DIR}/20_branching_summary.csv")
 
-    fig1 = px.bar(
-        step_df,
-        x="step",
-        y="pct",
-        color="event",
-        facet_row="segment",
+    fig1 = go.Figure()
+    event_order = step_df["event"].drop_duplicates().tolist() if not step_df.empty else []
+    palette = [
+        "#00b4d8", "#48cae4", "#90e0ef", "#ffd166",
+        "#ef476f", "#8338ec", "#06d6a0", "#f4a261",
+    ]
+    event_colors = {event: palette[i % len(palette)] for i, event in enumerate(event_order)}
+    segment_offsets = {"Agent Builder": -0.25, "Viewer": 0.0, "Ghost": 0.25}
+    for segment in segments:
+        seg_df = step_df[step_df["segment"] == segment]
+        for event_name in event_order:
+            sub = seg_df[seg_df["event"] == event_name]
+            if sub.empty:
+                continue
+            x_vals = [float(step) + segment_offsets.get(segment, 0.0) for step in sub["step"]]
+            fig1.add_trace(go.Bar(
+                x=x_vals,
+                y=sub["pct"],
+                name=f"{segment}: {event_name}",
+                marker_color=event_colors.get(event_name, "#888"),
+                width=0.22,
+                offsetgroup=segment,
+                legendgroup=event_name,
+            ))
+    fig1.update_layout(
         title="Early Path Step Mix By Segment<br><sup>Where Ghost, Viewer, and Builder journeys start to diverge</sup>",
         template="plotly_dark",
-        labels={"step": "Path step", "pct": "Users %", "event": "Event"},
+        xaxis_title="Path step",
+        yaxis_title="Users %",
         height=720,
+        barmode="group",
     )
     write_html(fig1, f"{OUTPUT_DIR}/20_path_step_mix.html")
     print(f"  Saved: {OUTPUT_DIR}/20_path_step_mix.html")
 
     top_branches = branch_summary.sort_values("branch_gap", ascending=False).head(20)
-    fig2 = px.bar(
-        top_branches,
-        x="branch_gap",
-        y="prefix",
-        color="next_event",
-        facet_col="comparison",
-        orientation="h",
+    fig2 = go.Figure()
+    if not top_branches.empty:
+        branch_event_order = top_branches["next_event"].drop_duplicates().tolist()
+        branch_event_colors = {
+            event: palette[i % len(palette)]
+            for i, event in enumerate(branch_event_order)
+        }
+        comparisons = top_branches["comparison"].drop_duplicates().tolist()
+        comparison_offsets = {
+            comp: (-0.18 if i == 0 else 0.18) for i, comp in enumerate(comparisons)
+        }
+        prefix_order = top_branches["prefix"].drop_duplicates().tolist()
+        prefix_pos = {prefix: idx for idx, prefix in enumerate(prefix_order)}
+        for comp in comparisons:
+            comp_df = top_branches[top_branches["comparison"] == comp]
+            for event_name in branch_event_order:
+                sub = comp_df[comp_df["next_event"] == event_name]
+                if sub.empty:
+                    continue
+                y_vals = [prefix_pos[prefix] + comparison_offsets.get(comp, 0.0) for prefix in sub["prefix"]]
+                fig2.add_trace(go.Bar(
+                    x=sub["branch_gap"],
+                    y=y_vals,
+                    orientation="h",
+                    name=f"{comp}: {event_name}",
+                    marker_color=branch_event_colors.get(event_name, "#888"),
+                    width=0.28,
+                ))
+        fig2.update_yaxes(
+            tickmode="array",
+            tickvals=list(prefix_pos.values()),
+            ticktext=list(prefix_pos.keys()),
+            autorange="reversed",
+        )
+    fig2.update_layout(
         title="Top Early Branch Points<br><sup>Prefixes whose next step most strongly separates outcomes</sup>",
         template="plotly_dark",
-        labels={"branch_gap": "Branch gap (pp)", "prefix": "Prefix", "next_event": "Next event"},
+        xaxis_title="Branch gap (pp)",
+        yaxis_title="Prefix",
         height=620,
+        barmode="group",
     )
-    fig2.update_layout(yaxis=dict(autorange="reversed"))
     write_html(fig2, f"{OUTPUT_DIR}/20_top_branch_points.html")
     print(f"  Saved: {OUTPUT_DIR}/20_top_branch_points.html")
 
@@ -185,17 +236,36 @@ def main() -> None:
         for prefix, n in counts.items():
             top_prefix_rows.append({"segment": segment, "path": prefix, "users": n})
     prefix_df = pd.DataFrame(top_prefix_rows)
-    fig3 = px.bar(
-        prefix_df,
-        x="users",
-        y="path",
-        color="segment",
-        facet_row="segment",
-        orientation="h",
+    fig3 = go.Figure()
+    seg_colors = {"Agent Builder": "#00b4d8", "Viewer": "#555566", "Ghost": "#2d2d3a"}
+    if not prefix_df.empty:
+        path_order = prefix_df["path"].drop_duplicates().tolist()
+        path_pos = {path: idx for idx, path in enumerate(path_order)}
+        for segment in segments:
+            sub = prefix_df[prefix_df["segment"] == segment]
+            if sub.empty:
+                continue
+            fig3.add_trace(go.Bar(
+                x=sub["users"],
+                y=[path_pos[path] for path in sub["path"]],
+                orientation="h",
+                name=segment,
+                marker_color=seg_colors.get(segment, "#888"),
+            ))
+        fig3.update_yaxes(
+            tickmode="array",
+            tickvals=list(path_pos.values()),
+            ticktext=list(path_pos.keys()),
+            autorange="reversed",
+        )
+    fig3.update_layout(
         title="Top Early Paths By Segment<br><sup>Most common deduped path prefixes in the first few steps</sup>",
         template="plotly_dark",
-        labels={"users": "Users", "path": "Path", "segment": ""},
+        xaxis_title="Users",
+        yaxis_title="Path",
         height=780,
+        barmode="group",
+        legend_title_text="",
     )
     write_html(fig3, f"{OUTPUT_DIR}/20_segment_path_prefixes.html")
     print(f"  Saved: {OUTPUT_DIR}/20_segment_path_prefixes.html")
@@ -212,6 +282,5 @@ def main() -> None:
 
     print("\n[OK] Path branching model complete.")
 
-
-if __name__ == "__main__":
-    main()
+# Zerve: call main() directly (no __main__ guard)
+main()
