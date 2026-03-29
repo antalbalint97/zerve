@@ -134,7 +134,11 @@ def load_table(base_names: list[str], required: bool = False) -> tuple[Optional[
 @st.cache_data(show_spinner=False)
 def load_all_data():
     feat, feat_path = load_table(
-        ["user_features_segmented"],
+        [
+            "user_features_segmented",
+            "outputs_user_features",
+            "user_features",
+        ],
         required=True,
     )
 
@@ -672,7 +676,11 @@ with tab1:
     left, right = st.columns([1.15, 1])
 
     with left:
-        st.plotly_chart(segments_fig, use_container_width=True)
+        st.plotly_chart(
+            segments_fig,
+            key="segments_fig_tab1",
+            width="stretch",
+        )
 
     with right:
         st.markdown("#### Summary")
@@ -695,7 +703,11 @@ with tab1:
         )
 
 with tab2:
-    st.plotly_chart(segments_fig, use_container_width=True)
+    st.plotly_chart(
+        segments_fig,
+        key="segments_fig_tab2",
+        width="stretch",
+    )
 
     seg_table = seg_stats.copy()
     seg_table = seg_table.rename(
@@ -709,10 +721,14 @@ with tab2:
             "pct_of_users": "Share of users %",
         }
     )
-    st.dataframe(seg_table.round(2), use_container_width=True)
+    st.dataframe(seg_table.round(2), width="stretch")
 
 with tab3:
-    st.plotly_chart(cohort_fig, use_container_width=True)
+    st.plotly_chart(
+        cohort_fig,
+        key="cohort_fig_tab3",
+        width="stretch",
+    )
 
     st.markdown(
         """
@@ -730,13 +746,17 @@ with tab3:
             "avg_tools": "Avg agent tools",
         }
     )
-    st.dataframe(cohort_table.round(2), use_container_width=True)
+    st.dataframe(cohort_table.round(2), width="stretch")
 
 with tab4:
     left, right = st.columns([1.1, 1])
 
     with left:
-        st.plotly_chart(retention_fig, use_container_width=True)
+        st.plotly_chart(
+            retention_fig,
+            key="retention_fig_tab4",
+            width="stretch",
+        )
 
     with right:
         st.markdown("#### Interpretation")
@@ -749,7 +769,11 @@ with tab4:
         )
 
 with tab5:
-    st.plotly_chart(churn_fig, use_container_width=True)
+    st.plotly_chart(
+        churn_fig,
+        key="churn_fig_tab5",
+        width="stretch",
+    )
 
     if has_churn:
         st.markdown(
@@ -766,10 +790,18 @@ with tab6:
     left, right = st.columns([1.1, 1])
 
     with left:
-        st.plotly_chart(intervention_fig, use_container_width=True)
+        st.plotly_chart(
+            intervention_fig,
+            key="intervention_fig_tab6_left",
+            width="stretch",
+        )
 
     with right:
-        st.plotly_chart(struggle_fig, use_container_width=True)
+        st.plotly_chart(
+            struggle_fig,
+            key="struggle_fig_tab6_right",
+            width="stretch",
+        )
 
     if has_interv:
         st.markdown(
