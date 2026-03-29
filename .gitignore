@@ -44,11 +44,6 @@ Thumbs.db
 !*.md
 !*.log
 
-# Generated outputs and artifacts
-outputs/**
-!outputs/**/*.log
-!outputs/pipeline_log.txt
-
 # Common generated visual/report artifacts
 *.html
 *.png
