@@ -28,8 +28,6 @@ Thumbs.db
 *.bak
 
 # Large local data files
-*.csv
-*.parquet
 *.feather
 *.arrow
 *.joblib
