@@ -366,7 +366,7 @@ def fig_activation_funnel() -> go.Figure:
         marker_color=bar_colors,
         textfont=dict(size=12),
     ))
-    return _layout(fig, "Activation funnel — where users drop off", h=380,
+    return _layout(fig, "Activation funnel - where users drop off", h=380,
                    yaxis_title="Users", yaxis_range=[0, n * 1.18])
 
 
@@ -421,7 +421,7 @@ def fig_cohort() -> go.Figure:
     fig.update_yaxes(title_text="Users signed up", secondary_y=False)
     fig.update_yaxes(title_text="Adoption rate (%)", secondary_y=True)
     fig.update_layout(
-        title="Signup cohort performance — the Nov–Dec collapse",
+        title="Signup cohort performance - the Nov–Dec collapse",
         template=T, height=420,
         legend=dict(orientation="h", y=-0.22),
         margin=dict(t=60, l=20, r=20, b=60),
@@ -479,7 +479,7 @@ def fig_survival_return() -> go.Figure:
             mode="lines", name=grp,
             line=dict(color=palette.get(grp, "#888"), width=2.5),
         ))
-    return _layout(fig, "Survival by return timing — early return predicts staying", h=400,
+    return _layout(fig, "Survival by return timing - early return predicts staying", h=400,
                    xaxis_title="Days", yaxis_title="Active users (%)",
                    legend=dict(orientation="h", y=-0.22))
 
@@ -522,7 +522,7 @@ def fig_roc_full() -> go.Figure:
         ))
     fig.add_shape(type="line", x0=0, y0=0, x1=1, y1=1,
                   line=dict(color="#94a3b8", dash="dash", width=1))
-    return _layout(fig, "ROC curves — Agent Builder prediction model (full population)", h=420,
+    return _layout(fig, "ROC curves - Agent Builder prediction model (full population)", h=420,
                    xaxis_title="False Positive Rate", yaxis_title="True Positive Rate",
                    legend=dict(orientation="h", y=-0.22))
 
@@ -555,7 +555,7 @@ def fig_feature_importance() -> go.Figure:
             name="Narrow", showlegend=False,
         ), row=1, col=2)
 
-    return _layout(fig, "Feature importance — what predicts Agent Builder status", h=440)
+    return _layout(fig, "Feature importance - what predicts Agent Builder status", h=440)
 
 
 # --- Churn ---
@@ -620,7 +620,7 @@ def fig_churn_fi() -> go.Figure:
         orientation="h", marker_color="#ef4444",
         text=df["importance"].round(3), textposition="outside",
     ))
-    return _layout(fig, "Churn model — top predictors of 14-day churn", h=420,
+    return _layout(fig, "Churn model - top predictors of 14-day churn", h=420,
                    xaxis_title="Feature importance")
 
 
@@ -644,7 +644,7 @@ def fig_intervention_mix() -> go.Figure:
         marker_color=[color_map.get(v, "#888") for v in iv["recommended_intervention"]],
         text=iv["users"], textposition="outside",
     ))
-    return _layout(fig, "Recommended interventions — already scored and ready to deploy", h=360,
+    return _layout(fig, "Recommended interventions - already scored and ready to deploy", h=360,
                    xaxis_title="Users")
 
 
@@ -696,7 +696,7 @@ def fig_struggle_distribution() -> go.Figure:
         marker_color=[color_map.get(v, "#888") for v in df["struggle_class"]],
         text=df["users"], textposition="outside",
     ))
-    return _layout(fig, "Quality of struggle — not all struggle predicts abandonment", h=380,
+    return _layout(fig, "Quality of struggle - not all struggle predicts abandonment", h=380,
                    yaxis_title="Users")
 
 
@@ -720,7 +720,7 @@ def fig_path_divergence() -> go.Figure:
             marker_color=palette.get(seg, "#888"),
             text=sdf["pct"].round(1), textposition="outside",
         ))
-    return _layout(fig, "Early path divergence — Agent Builders vs Ghosts", h=420,
+    return _layout(fig, "Early path divergence - Agent Builders vs Ghosts", h=420,
                    yaxis_title="% of segment", barmode="group",
                    legend=dict(orientation="h", y=-0.22))
 
@@ -760,7 +760,7 @@ def fig_canvas_repeat() -> go.Figure:
         mdf = df[df["metric"] == metric]
         for _, row in mdf.iterrows():
             fig.add_trace(go.Bar(
-                name=f"{row['repeat_canvas_label']} — {label}",
+                name=f"{row['repeat_canvas_label']} - {label}",
                 x=[label], y=[row["value"]],
                 marker_color=color_map.get(row["repeat_canvas_label"], "#888"),
                 showlegend=True,
@@ -842,7 +842,7 @@ with col_a:
         """
         <div class="insight-box">
         <strong>The product works. Most users never reach it.</strong><br><br>
-        Agent Builders — the 6% who use the AI agent to construct pipelines — show 90% second-session
+        Agent Builders - the 6% who use the AI agent to construct pipelines - show 90% second-session
         return and average 157 tool interactions. The product delivers real value. But 63.7% of users
         are Ghosts who never ran a single tool. The activation funnel is broken, not the product.
         </div>
@@ -856,7 +856,7 @@ with col_b:
         <div class="callout-warn">
         <strong>⚠ Critical signal: Nov–Dec cohort collapse</strong><br><br>
         September and October 2025 cohorts hit ~19.5% Agent Builder adoption. November and December
-        show <strong>0.0%</strong> across 3,300 users. This is not a trend — it is a regression.
+        show <strong>0.0%</strong> across 3,300 users. This is not a trend - it is a regression.
         Root-cause analysis is the highest-priority product action.
         </div>
         """,
@@ -917,7 +917,7 @@ with tab_overview:
             <ul>
             <li>Only <strong>~36%</strong> ran at least one tool.</li>
             <li>Only <strong>13.6%</strong> ever used the AI agent.</li>
-            <li>Only <strong>6.0%</strong> reached Agent Builder status — consistent,
+            <li>Only <strong>6.0%</strong> reached Agent Builder status - consistent,
             meaningful agent-assisted pipeline work.</li>
             </ul>
             The gap between "registered" and "experienced the product" is the dominant
@@ -950,7 +950,7 @@ with tab_overview:
         )
         st.markdown(
             '<div class="small-note">Users who returned within 24h have a 22.8% Agent Builder rate '
-            'vs 0.8% among users who never returned — early return is the clearest leading '
+            'vs 0.8% among users who never returned - early return is the clearest leading '
             'indicator of eventual success.</div>',
             unsafe_allow_html=True,
         )
@@ -961,7 +961,7 @@ with tab_overview:
 with tab_segs:
     st.markdown("### Segment behavioral profiles")
     st.markdown(
-        "Agent Builder is not just the best segment — it is categorically different "
+        "Agent Builder is not just the best segment - it is categorically different "
         "from every other group in the dataset."
     )
 
@@ -1020,7 +1020,7 @@ with tab_segs:
             <div class="insight-box">
             <strong>Ghost: a pre-activation failure, not a retention problem</strong><br><br>
             3,037 users (63.7%) · 0.00 avg tool calls · 8% second-session return.
-            These users registered and never started. No retention strategy reaches them —
+            These users registered and never started. No retention strategy reaches them -
             the intervention must happen at or before the moment of first use.
             </div>
             """,
@@ -1091,7 +1091,7 @@ with tab_cohorts:
             <div class="insight-box">
             <strong>Observation-window caveat</strong><br><br>
             Nov–Dec users had fewer days to accumulate agent build calls before the dataset
-            ended on Dec 8, 2025. This partially explains the zero rate — but the September
+            ended on Dec 8, 2025. This partially explains the zero rate - but the September
             and October cohorts had 19%+ Agent Builder rates well within their first weeks,
             so the observation window alone does not explain the collapse.
             </div>
@@ -1109,7 +1109,7 @@ with tab_ret:
     with col1:
         st.plotly_chart(fig_survival_segment(), key="surv_seg", use_container_width=True)
         st.markdown(
-            '<div class="small-note">Agent Builders decay more slowly but still churn — '
+            '<div class="small-note">Agent Builders decay more slowly but still churn - '
             'the platform creates strong early engagement but has not yet built durable habits.</div>',
             unsafe_allow_html=True,
         )
@@ -1121,7 +1121,7 @@ with tab_ret:
             unsafe_allow_html=True,
         )
 
-    st.markdown("#### Activation milestones — what predicts Agent Builder status")
+    st.markdown("#### Activation milestones - what predicts Agent Builder status")
     col3, col4 = st.columns([1.3, 1])
     with col3:
         st.plotly_chart(fig_activation_milestones(), key="act_miles", use_container_width=True)
@@ -1167,11 +1167,11 @@ with tab_ret:
 # ─── TAB 5: MODELING ────────────────────────────────────────────────────────
 
 with tab_model:
-    st.markdown("### Predictive modeling — Agent Builder classification")
+    st.markdown("### Predictive modeling - Agent Builder classification")
     st.markdown(
         "Three models were evaluated for predicting Agent Builder status. "
         "The full-population model is highly accurate; the narrowed model (first-session signals only) "
-        "is more product-actionable — it identifies at-risk users early enough to intervene."
+        "is more product-actionable - it identifies at-risk users early enough to intervene."
     )
 
     # Model comparison table
@@ -1210,8 +1210,8 @@ with tab_model:
             """
             <div class="insight-box">
             <strong>Narrowed model: product-actionable signals</strong><br><br>
-            When restricted to first-session signals — breadth of event types explored,
-            time to return, session duration — the model still performs well while using
+            When restricted to first-session signals - breadth of event types explored,
+            time to return, session duration - the model still performs well while using
             only information available within hours of signup. These are the signals that
             should drive onboarding personalization and early-session nudge timing.
             </div>
@@ -1223,7 +1223,7 @@ with tab_model:
 # ─── TAB 6: CHURN ───────────────────────────────────────────────────────────
 
 with tab_churn:
-    st.markdown("### Churn analysis — active-user 14-day proxy")
+    st.markdown("### Churn analysis - active-user 14-day proxy")
     st.markdown(
         "The 14-day churn proxy among active users stands at **83.3%**. "
         "Most churn is silent: users stop coming back without triggering any visible struggle signal."
@@ -1248,7 +1248,7 @@ with tab_churn:
             )
             st.markdown(
                 '<div class="small-note">Critical bucket: 100% actual churn rate, '
-                'avg 1.2 active days. Low bucket: 0% churn, avg 21 active days — '
+                'avg 1.2 active days. Low bucket: 0% churn, avg 21 active days - '
                 'canvas complexity strongly separates these groups.</div>',
                 unsafe_allow_html=True,
             )
@@ -1287,10 +1287,10 @@ with tab_churn:
 # ─── TAB 7: INTERVENTIONS ───────────────────────────────────────────────────
 
 with tab_interv:
-    st.markdown("### Intervention targeting — scored and ready to deploy")
+    st.markdown("### Intervention targeting - scored and ready to deploy")
     st.markdown(
         "Behavioral scoring has identified specific users for each intervention type. "
-        "These are not estimates — they are scored individual users with computed priority values."
+        "These are not estimates - they are scored individual users with computed priority values."
     )
 
     c1, c2 = st.columns([1.1, 1])
@@ -1322,7 +1322,7 @@ with tab_interv:
             <strong>Activation nudge: 3,393 users</strong><br><br>
             Low churn risk, low activation signal. These users registered but never engaged.
             In-app guided prompts or email flows showing "what the agent can do" are the
-            appropriate intervention — ideally triggering within 24h of signup.
+            appropriate intervention - ideally triggering within 24h of signup.
             </div>
             """,
             unsafe_allow_html=True,
@@ -1369,7 +1369,7 @@ with tab_interv:
 # ─── TAB 8: STRUGGLE & RECOVERY ─────────────────────────────────────────────
 
 with tab_struggle:
-    st.markdown("### Quality of struggle — not all friction predicts abandonment")
+    st.markdown("### Quality of struggle - not all friction predicts abandonment")
     st.markdown(
         "Struggle in a product is only a problem if it leads to abandonment. "
         "Users who push through difficulty and recover often become the most engaged. "
@@ -1401,7 +1401,7 @@ with tab_struggle:
             <div class="insight-box">
             <strong>Abandonment-prone struggle: 121 users</strong><br><br>
             High abandonment risk (0.69), high churn probability (0.89).
-            These users are in active distress — they're trying and failing, and will not
+            These users are in active distress - they're trying and failing, and will not
             recover without direct support. Targeted help content, error-assist prompts,
             or human-in-the-loop interventions are warranted.
             </div>
@@ -1413,7 +1413,7 @@ with tab_struggle:
             """
             <div class="insight-box">
             <strong>No visible struggle: 4,404 users</strong><br><br>
-            Low quality score (0.06) but high abandonment risk (0.62) — these are mostly
+            Low quality score (0.06) but high abandonment risk (0.62) - these are mostly
             Ghost users who never started. Their churn is not from struggle; it is from
             never being activated in the first place. Intervention is onboarding, not support.
             </div>
@@ -1443,9 +1443,9 @@ with tab_struggle:
 # ─── TAB 9: WORKFLOW & PATHS ─────────────────────────────────────────────────
 
 with tab_workflow:
-    st.markdown("### Workflow analysis — how successful users behave differently")
+    st.markdown("### Workflow analysis - how successful users behave differently")
     st.markdown(
-        "Agent Builders do not just use more tools — they follow distinct paths, "
+        "Agent Builders do not just use more tools - they follow distinct paths, "
         "exhibit iterative build-run loops, and return to canvases repeatedly to increase complexity."
     )
 
@@ -1499,7 +1499,7 @@ with tab_workflow:
                     hide_index=True,
                 )
 
-    st.markdown("#### Canvas complexity — repeat canvas users engage longer")
+    st.markdown("#### Canvas complexity - repeat canvas users engage longer")
     st.plotly_chart(fig_canvas_repeat(), key="canvas_repeat", use_container_width=True)
 
     cg = D.get("canvas_growth")
@@ -1521,7 +1521,7 @@ with tab_workflow:
     # Branch points
     br = D.get("branch_top")
     if br is not None:
-        st.markdown("#### Top path branch points — where AB and Ghost diverge most")
+        st.markdown("#### Top path branch points - where AB and Ghost diverge most")
         disp_br = br.head(10)[["prefix", "next_event", "users",
                                 "pct_agent_builder", "pct_ghost", "branch_gap"]].rename(columns={
             "prefix": "Event prefix", "next_event": "Next event",
@@ -1532,7 +1532,7 @@ with tab_workflow:
 
 
 # ============================================================
-# FOOTER — NORTH STAR + ACTIONS
+# FOOTER - NORTH STAR + ACTIONS
 # ============================================================
 
 st.markdown("---")
