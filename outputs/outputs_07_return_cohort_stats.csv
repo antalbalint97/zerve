@@ -1,0 +1,4 @@
+return_cohort,users,pct_ab,avg_days
+Never returned,3458,0.838635049161365,1.0410641989589358
+Returned (>24h),256,5.859375,3.8203125
+Returned quickly (<=24h),1057,22.8003784295175,2.872280037842952
