@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 
-DATA_PATH = "zerve_events.csv"
+DATA_PATH = "data/zerve_events.csv"
 FEAT_PATH = "outputs/user_features_segmented.parquet"
 OUTPUT_DIR = "outputs"
 

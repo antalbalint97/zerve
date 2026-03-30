@@ -1,4 +1,6 @@
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import warnings
@@ -21,7 +23,7 @@ from analytics.metrics import summarize_risk
 
 warnings.filterwarnings("ignore")
 
-DATA_PATH = "zerve_events.csv"
+DATA_PATH = "data/zerve_events.csv"
 FEAT_PATH = "outputs/user_features_segmented.parquet"
 CANVAS_COMPLEXITY_PATH = "outputs/canvas_complexity_features.parquet"
 HORIZON_DAYS = 14

@@ -1,4 +1,6 @@
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import warnings
@@ -22,7 +24,7 @@ from analytics.metrics import compute_canvas_complexity_score, split_first_vs_la
 
 warnings.filterwarnings("ignore")
 
-DATA_PATH = "zerve_events.csv"
+DATA_PATH = "data/zerve_events.csv"
 FEAT_PATH = "outputs/user_features_segmented.parquet"
 
 SEGMENT_COLORS = {

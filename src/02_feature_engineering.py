@@ -1,4 +1,6 @@
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 """
 =============================================================
@@ -20,7 +22,7 @@ import pandas as pd
 from analytics.events import add_canvas_id, add_normalized_tool, reconstruct_sessions
 from analytics.io import load_events
 
-DATA_PATH = "zerve_events.csv"
+DATA_PATH = "data/zerve_events.csv"
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 

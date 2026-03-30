@@ -1,4 +1,6 @@
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 """
 =============================================================
@@ -34,7 +36,7 @@ from analytics.io import OUTPUT_DIR, ensure_output_dir, load_features, load_raw_
 from analytics.viz import write_html
 warnings.filterwarnings("ignore")
 
-DATA_PATH  = "zerve_events.csv"
+DATA_PATH  = "data/zerve_events.csv"
 FEAT_PATH  = "outputs/user_features_segmented.parquet"
 ensure_output_dir(OUTPUT_DIR)
 

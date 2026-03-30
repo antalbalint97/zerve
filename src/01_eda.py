@@ -1,4 +1,6 @@
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 """
 =============================================================
@@ -19,7 +21,7 @@ from analytics.io import OUTPUT_DIR, ensure_output_dir, load_raw_events
 from analytics.viz import write_html
 
 # -- CONFIG ------------------------------------------------
-DATA_PATH   = "zerve_events.csv"   # adjust if needed
+DATA_PATH   = "data/zerve_events.csv"
 ensure_output_dir(OUTPUT_DIR)
 
 # -- 1. LOAD -----------------------------------------------

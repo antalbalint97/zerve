@@ -1,4 +1,6 @@
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -16,7 +18,7 @@ from analytics.metrics import wilson_interval
 
 warnings.filterwarnings("ignore")
 
-DATA_PATH = "zerve_events.csv"
+DATA_PATH = "data/zerve_events.csv"
 FEAT_PATH = "outputs/user_features_segmented.parquet"
 CANVAS_COMPLEXITY_PATH = "outputs/canvas_complexity_features.parquet"
 CHURN_PATH_CANDIDATES = [

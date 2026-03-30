@@ -13,7 +13,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # ── CONFIG ────────────────────────────────────────────────
-OUTPUT_DIR  = Path("outputs")
+SRC_DIR    = Path(__file__).parent
+ROOT       = SRC_DIR.parent
+OUTPUT_DIR = ROOT / "outputs"
 STATUS_FILE = OUTPUT_DIR / "pipeline_status.json"
 LOG_FILE    = OUTPUT_DIR / "pipeline_log.txt"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -347,10 +349,11 @@ def tail(text, n=20):
 # ── RUNNER ────────────────────────────────────────────────
 
 def run_step(step_cfg, step_status, log_fh, dry_run=False):
-    script = step_cfg["script"]
+    script      = step_cfg["script"]
+    script_path = SRC_DIR / script
 
     if dry_run:
-        print(f"  [DRY-RUN] Would run: python {script}")
+        print(f"  [DRY-RUN] Would run: python src/{script}")
         step_status["status"]      = "skipped"
         step_status["output_tail"] = "dry-run mode"
         return True
@@ -363,9 +366,9 @@ def run_step(step_cfg, step_status, log_fh, dry_run=False):
                f"# import check only"]
         # Just try to compile the file
         try:
-            with open(script) as f:
+            with open(script_path) as f:
                 source = f.read()
-            compile(source, script, "exec")
+            compile(source, str(script_path), "exec")
             step_status["status"]      = "success"
             step_status["output_tail"] = "Syntax OK - import check passed"
             return True
@@ -374,7 +377,7 @@ def run_step(step_cfg, step_status, log_fh, dry_run=False):
             step_status["error_tail"] = str(e)
             return False
 
-    cmd = [sys.executable, script]
+    cmd = [sys.executable, str(script_path)]
     t0  = time.time()
 
     try:
@@ -383,6 +386,8 @@ def run_step(step_cfg, step_status, log_fh, dry_run=False):
             capture_output=True,
             text=True,
             timeout=step_cfg["timeout_sec"],
+            env={**os.environ, "PYTHONPATH": str(ROOT)},
+            cwd=str(ROOT),
         )
         elapsed = time.time() - t0
 
@@ -406,7 +411,7 @@ def run_step(step_cfg, step_status, log_fh, dry_run=False):
         # Check which output files exist
         step_status["outputs_found"] = [
             f for f in step_cfg.get("outputs", [])
-            if Path(f).exists()
+            if (ROOT / f).exists()
         ]
 
         if proc.returncode == 0:
@@ -423,7 +428,7 @@ def run_step(step_cfg, step_status, log_fh, dry_run=False):
 
     except FileNotFoundError:
         step_status["status"]     = "failed"
-        step_status["error_tail"] = f"Script not found: {script}"
+        step_status["error_tail"] = f"Script not found: {script_path}"
         return False
 
 
