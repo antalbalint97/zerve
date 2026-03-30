@@ -193,7 +193,7 @@ def load_table(
     return df, found
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, ttl=3600)
 def load_all_data() -> dict:
     feat, feat_path = load_table(
         ["user_features_segmented", "outputs_user_features", "user_features"],
@@ -650,6 +650,14 @@ def fig_intervention_mix() -> go.Figure:
 
 def fig_intervention_signals() -> go.Figure:
     df = D.get("interv_signals")
+    if df is None:
+        # fallback: try loading directly (bypasses stale cache)
+        _p = OUTPUTS_DIR / "outputs_18_intervention_signal_profile_data.parquet"
+        _pc = OUTPUTS_DIR / "outputs_18_intervention_signal_profile_data.csv"
+        if _p.exists():
+            df = pd.read_parquet(_p)
+        elif _pc.exists():
+            df = pd.read_csv(_pc)
     if df is None:
         return go.Figure().update_layout(title="Signal profile data unavailable", template=T, height=360)
     pivot = df.pivot(index="recommended_intervention", columns="metric", values="value")
