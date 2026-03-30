@@ -1,0 +1,37 @@
+# Ignore everything in this folder by default
+*
+
+# Un-ignore the 32 files the dashboard actually loads
+!.gitignore
+!outputs_06_feature_importance_full.parquet
+!outputs_06_feature_importance_narrow.parquet
+!outputs_06_kpi_by_cohort.parquet
+!outputs_06_kpi_by_segment.parquet
+!outputs_06_model_cv_summary.parquet
+!outputs_06_roc_curves_data.parquet
+!outputs_07_return_cohort_stats.parquet
+!outputs_07_survival_by_return_data.csv
+!outputs_07_survival_by_segment_data.csv
+!outputs_10_activation_milestones_summary.parquet
+!outputs_10_path_divergence_data.parquet
+!outputs_10_time_to_agent_builder_summary.parquet
+!outputs_10_top_agent_builder_paths.parquet
+!outputs_10_top_ghost_paths.parquet
+!outputs_11_tool_mix_by_segment_data.parquet
+!outputs_11_top_bigrams_by_segment.parquet
+!outputs_12_att_results_data.parquet
+!outputs_13_canvas_growth_by_segment_data.parquet
+!outputs_13_repeat_canvas_retention_melted.parquet
+!outputs_14_churn_cv_results.parquet
+!outputs_14_churn_feature_importance_data.parquet
+!outputs_14_churn_risk_bucket_summary.parquet
+!outputs_14_churn_roc_pr_data.parquet
+!outputs_14_churn_scored_users.parquet
+!outputs_16_segment_workflow_motifs_data.parquet
+!outputs_18_intervention_scored_users.parquet
+!outputs_18_intervention_signal_profile_data.parquet
+!outputs_18_intervention_summary.parquet
+!outputs_19_quality_of_struggle_scored_users.parquet
+!outputs_19_quality_of_struggle_summary.csv
+!outputs_20_top_branch_points_data.parquet
+!outputs_user_features_segmented.parquet
